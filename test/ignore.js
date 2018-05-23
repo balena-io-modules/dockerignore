@@ -121,22 +121,29 @@ var cases = [
     'wildcard: special case, escaped wildcard',
     [
       '*.html',
+      'a/b/*.html',
       '!a/b/\\*/index.html'
     ],
     {
       'a/b/*/index.html': 0,
-      'a/b/index.html': 1
+      'a/b/index.html': 1,
+      'index.html': 1
     }
   ],
   [
     'wildcard: treated as a shell glob suitable for consumption by fnmatch(3)',
     [
       '*.html',
+      '*/*.html',
+      '*/*/*.html',
       '!b/\*/index.html'
     ],
     {
       'a/b/*/index.html': 1,
-      'a/b/index.html': 1
+      'a/b/index.html': 1,
+      'b/*/index.html': 0,
+      'b/index.html': 0,
+      'index.html': 1
     }
   ],
   [
