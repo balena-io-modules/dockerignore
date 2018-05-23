@@ -1,7 +1,7 @@
 {
-  "name": "ignore",
-  "version": "3.3.8",
-  "description": "Ignore is a manager and filter for .gitignore rules.",
+  "name": "docker-ignore",
+  "version": "1.0.0",
+  "description": "docker-ggnore is a manager and filter for .dockerignore rules and is a fork of ignore.",
   "main": "./ignore.js",
   "files": [
     "ignore.js",
@@ -16,12 +16,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:kaelzhang/node-ignore.git"
+    "url": "git@github.com:zeit/docker-ignore.git"
   },
   "keywords": [
     "ignore",
-    ".gitignore",
-    "gitignore",
+    ".dockerignore",
+    "dockerignore",
     "npmignore",
     "rules",
     "manager",
@@ -33,10 +33,9 @@
     "asterisks",
     "regular-expression"
   ],
-  "author": "kael",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/kaelzhang/node-ignore/issues"
+    "url": "https://github.com/zeit/docker-ignore/issues"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
