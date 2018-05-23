@@ -9,8 +9,10 @@ var tmp = require('tmp').dirSync
 var mkdirp = require('mkdirp').sync
 var path = require('path')
 var rm = require('rimraf').sync
-var removeEnding = require('pre-suf').removeEnding
+var preSuf = require('pre-suf')
 
+var removeEnding = preSuf.removeEnding
+var removeLeading = preSuf.removeLeading
 
 var IS_WINDOWS = process.platform === 'win32'
 var SHOULD_TEST_WINDOWS = !process.env.IGNORE_TEST_WIN32
@@ -18,17 +20,17 @@ var SHOULD_TEST_WINDOWS = !process.env.IGNORE_TEST_WIN32
 
 var cases = [
   [
-    'intermediate "\ " should be unescaped to " "',
+    'spaces are not special characters',
     [
-      'abc\\ d',
+      'abc d',
       'abc e',
-      'a\\ b\\ c'
+      'abc/a b c'
     ],
     {
       'abc d': 1,
       'abc e': 1,
-      'abc/abc d': 1,
-      'abc/abc e': 1,
+      'abc/abc d': 0,
+      'abc/abc e': 0,
       'abc/a b c': 1
     }
   ],
@@ -54,20 +56,65 @@ var cases = [
     }
   ],
   [
-    '#26: .gitignore man page sample',
+    '.dockerignore documentation sample 1',
     [
-      '# exclude everything except directory foo/bar',
-      '/*',
-      '!/foo',
-      '/foo/*',
-      '!/foo/bar'
+      '# comment',
+      '*/temp*',
+      '*/*/temp*',
+      'temp?'
     ],
     {
-      'no.js': 1,
-      'foo/no.js': 1,
-      'foo/bar/yes.js': 0,
-      'foo/bar/baz/yes.js': 0,
-      'boo/no.js': 1
+      'somedir/temporary.txt': 1,
+      'somedir/temp/something.txt': 1,
+      'somedir/subdir/temporary.txt': 1,
+      'somedir/subdir/temp/something.txt': 1,
+      'tempa/something.txt': 1,
+      'tempb/something.txt': 1,
+      'something.txt': 0,
+      'somedir/something.txt': 0,
+      'somedir/subdir/something.txt': 0,
+    }
+  ],
+  [
+    '.dockerignore documentation sample 2',
+    [
+      '*.md',
+      '!README.md'
+    ],
+    {
+      'test.txt': 0,
+      'test.md': 1,
+      'README.md': 0,
+    }
+  ],
+  [
+    '.dockerignore documentation sample 3',
+    [
+      '*.md',
+      '!README.md',
+      'README-secret.md'
+    ],
+    {
+      'test.txt': 0,
+      'test.md': 1,
+      'README.md': 0,
+      'README-public.md': 0,
+      'README-secret.md': 1,
+    }
+  ],
+  [
+    '.dockerignore documentation sample 4',
+    [
+      '*.md',
+      'README-secret.md',
+      '!README.md'
+    ],
+    {
+      'test.txt': 0,
+      'test.md': 1,
+      'README.md': 0,
+      'README-public.md': 0,
+      'README-secret.md': 0,
     }
   ],
   [
@@ -649,12 +696,12 @@ describe("cases", function() {
     // Tired to handle test cases for test cases for windows
     && !IS_WINDOWS
     // `git check-ignore` could only handles non-empty filenames
-    && paths.some(Boolean)
+    && paths.some(Boolean) // TODO: remove?
     // `git check-ignore` will by default ignore .git/ directory
     // which `node-ignore` should not do as well
     && expected.every(notGitBuiltin)
     && it('test for test:    ' + description, function () {
-      var result = getNativeGitIgnoreResults(patterns, paths).sort()
+      var result = getNativeDockerIgnoreResults(patterns, paths).sort()
 
       expect_result(result)
     })
@@ -746,17 +793,27 @@ function createUniqueTmp () {
 }
 
 
-function getNativeGitIgnoreResults (rules, paths) {
+function getNativeDockerIgnoreResults (rules, paths) {
   var dir = createUniqueTmp()
 
   var gitignore = typeof rules === 'string'
     ? rules
     : rules.join('\n')
 
-  touch(dir, '.gitignore', gitignore)
+  var DockerfileName = 'Dockerfile.build-context'
+  var Dockerfile = `
+    FROM busybox
+    COPY . /build-context
+    WORKDIR /build-context
+    CMD find . -type f
+  `
+  var ignores = new Set([DockerfileName, '.dockerignore', '.']) // TODO: Include Dockerfile and .dockerignore in tests and remove this
+
+  touch(dir, '.dockerignore', gitignore)
+  touch(dir, DockerfileName, Dockerfile)
 
   paths.forEach(function (path, i) {
-    if (path === '.gitignore') {
+    if (path === '.dockerignore') {
       return
     }
 
@@ -771,29 +828,20 @@ function getNativeGitIgnoreResults (rules, paths) {
     touch(dir, path)
   })
 
-  spawn('git', ['init'], {
+  spawn('docker', ['build', '-f', DockerfileName, '-t', 'build-context', '.'], {
     cwd: dir
   })
 
-  spawn('git', ['add', '-A'], {
+  var runProc = spawn('docker', ['run', '--rm', 'build-context'], {
     cwd: dir
   })
 
-  return paths
-  .filter(function (path) {
-    var out = spawn('git', [
-      'check-ignore',
-      // `spawn` will escape the special cases for us
-      path
-    ], {
-      cwd: dir
-    }).stdout.toString()
+  var out = runProc.stdout.toString()
+  .split('\n')
+  .map(s => removeLeading(s, './'))
+  .filter(s => Boolean(s) && !ignores.has(s))
 
-    out = removeEnding(out, '\n')
-
-    var ignored = out === path
-    return !ignored
-  })
+  return out
 }
 
 
