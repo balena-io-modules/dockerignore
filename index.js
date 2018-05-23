@@ -16,9 +16,9 @@ const REGEX_LEADING_EXCAPED_EXCLAMATION = /^\\\!/
 const REGEX_LEADING_EXCAPED_HASH = /^\\#/
 const SLASH = '/'
 const KEY_IGNORE = typeof Symbol !== 'undefined'
-  ? Symbol.for('node-ignore')
+  ? Symbol.for('docker-ignore')
   /* istanbul ignore next */
-  : 'node-ignore'
+  : 'docker-ignore'
 
 
 class IgnoreBase {
@@ -187,12 +187,6 @@ const DEFAULT_REPLACER_PREFIX = [
     match => match.indexOf('\\') === 0
       ? ' '
       : ''
-  ],
-
-  // replace (\ ) with ' '
-  [
-    /\\\s/g,
-    () => ' '
   ],
 
   // Escape metacharacters

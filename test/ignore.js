@@ -20,18 +20,22 @@ var SHOULD_TEST_WINDOWS = !process.env.IGNORE_TEST_WIN32
 
 var cases = [
   [
-    'spaces are not special characters',
+    'spaces are accepted in patterns. "\\ " doesn\'t mean anything special',
     [
       'abc d',
-      'abc e',
+      'abc\ e',
+      'abc\\ f',
       'abc/a b c'
     ],
     {
       'abc d': 1,
-      'abc e': 1,
+      'abc\ e': 1,
+      'abc/a b c': 1,
+      'abc\\ f': 0,
+      'abc': 0,
       'abc/abc d': 0,
       'abc/abc e': 0,
-      'abc/a b c': 1
+      'abc/abc f': 0
     }
   ],
   [
@@ -43,7 +47,7 @@ var cases = [
     }
   ],
   [
-    '#25',
+    '.git files are just like any other files',
     [
       '.git/*',
       '!.git/config',
@@ -51,6 +55,7 @@ var cases = [
     ],
     {
       '.ftpconfig': 1,
+      '.git': 0,
       '.git/config': 0,
       '.git/description': 1
     }
@@ -71,7 +76,9 @@ var cases = [
       'tempa/something.txt': 1,
       'tempb/something.txt': 1,
       'something.txt': 0,
+      'somedir': 0,
       'somedir/something.txt': 0,
+      'somedir/subdir': 0,
       'somedir/subdir/something.txt': 0,
     }
   ],
@@ -91,7 +98,7 @@ var cases = [
     '.dockerignore documentation sample 3',
     [
       '*.md',
-      '!README.md',
+      '!README*.md',
       'README-secret.md'
     ],
     {
@@ -107,7 +114,7 @@ var cases = [
     [
       '*.md',
       'README-secret.md',
-      '!README.md'
+      '!README*.md'
     ],
     {
       'test.txt': 0,
@@ -125,6 +132,9 @@ var cases = [
       '!a/b/\\*/index.html'
     ],
     {
+      'a': 0,
+      'a/b': 0,
+      'a/b/*': 0,
       'a/b/*/index.html': 0,
       'a/b/index.html': 1,
       'index.html': 1
@@ -136,13 +146,19 @@ var cases = [
       '*.html',
       '*/*.html',
       '*/*/*.html',
+      '*/*/*/*.html',
       '!b/\*/index.html'
     ],
     {
+      'a': 0,
+      'a/b': 0,
+      'a/b/*': 0,
+      'b': 0,
+      'b/*': 0,
       'a/b/*/index.html': 1,
       'a/b/index.html': 1,
       'b/*/index.html': 0,
-      'b/index.html': 0,
+      'b/index.html': 1,
       'index.html': 1
     }
   ],
@@ -150,32 +166,41 @@ var cases = [
     'wildcard: with no escape',
     [
       '*.html',
+      'a/b/*.html',
       '!a/b/*/index.html'
     ],
     {
+      'a': 0,
+      'a/b': 0,
+      'a/b/*': 0,
       'a/b/*/index.html': 0,
-      'a/b/index.html': 1
+      'a/b/index.html': 1,
+      'index.html': 1,
     }
   ],
   [
-    '#24: a negative pattern without a trailing wildcard',
+    'a negative pattern without a trailing wildcard re-includes the directory (unlike gitignore)',
     [
       '/node_modules/*',
       '!/node_modules',
       '!/node_modules/package'
     ],
     {
-      'node_modules/a/a.js': 1,
+      'node_modules': 0,
+      'node_modules/a': 0,
+      'node_modules/a/a.js': 0,
+      'node_modules/package': 0,
       'node_modules/package/a.js': 0
     }
   ],
   [
-    '#21: unignore with 1 globstar, reversed order',
+    'unignore with 1 globstar, reversed order',
     [
       '!foo/bar.js',
       'foo/*'
     ],
     {
+      'foo': 0,
       'foo/bar.js': 1,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1
@@ -183,12 +208,13 @@ var cases = [
   ],
 
   [
-    '#21: unignore with 2 globstars, reversed order',
+    'unignore with 2 globstars, reversed order',
     [
       '!foo/bar.js',
       'foo/**'
     ],
     {
+      'foo': 0,
       'foo/bar.js': 1,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1
@@ -196,12 +222,14 @@ var cases = [
   ],
 
   [
-    '#21: unignore with several groups of 2 globstars, reversed order',
+    'unignore with several groups of 2 globstars, reversed order',
     [
       '!foo/bar.js',
       'foo/**/**'
     ],
     {
+      'foo': 0,
+      'foo/bar': 1,
       'foo/bar.js': 1,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1
@@ -209,12 +237,13 @@ var cases = [
   ],
 
   [
-    '#21: unignore with 1 globstar',
+    'unignore with 1 globstar',
     [
       'foo/*',
       '!foo/bar.js'
     ],
     {
+      'foo': 0,
       'foo/bar.js': 0,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1
@@ -222,12 +251,13 @@ var cases = [
   ],
 
   [
-    '#21: unignore with 2 globstars',
+    'unignore with 2 globstars',
     [
       'foo/**',
       '!foo/bar.js'
     ],
     {
+      'foo': 0,
       'foo/bar.js': 0,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1
@@ -235,12 +265,13 @@ var cases = [
   ],
 
   [
-    'related to #21: several groups of 2 globstars',
+    'several groups of 2 globstars',
     [
       'foo/**/**',
       '!foo/bar.js'
     ],
     {
+      'foo': 0,
       'foo/bar.js': 0,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1
@@ -260,19 +291,21 @@ var cases = [
   ],
 
   [
-    '#14, README example broken in `3.0.3`',
+    'Negate direcory inside ignored directory',
     [
       '.abc/*',
       '!.abc/d/'
     ],
     {
+      '.abc': 0,
+      '.abc/d': 0,
       '.abc/a.js': 1,
       '.abc/d/e.js': 0
     }
   ],
 
   [
-    '#14, README example broken in `3.0.3`, not negate parent folder',
+    'Negate wildcard inside ignored parent directory (gitignore differs here)',
     [
       '.abc/*',
       // .abc/d will be ignored
@@ -280,8 +313,10 @@ var cases = [
     ],
     {
       '.abc/a.js': 1,
-      // so '.abc/d/e.js' will be ignored
-      '.abc/d/e.js': 1
+      // but '.abc/d/e.js' won't be (unlike gitignore)
+      '.abc': 0,
+      '.abc/d': 0,
+      '.abc/d/e.js': 0
     }
   ],
 
@@ -291,8 +326,10 @@ var cases = [
       ''
     ],
     {
+      'a.txt': 0,
       'a': 0,
-      'a/b/c': 0
+      'a/b': 0,
+      'a/b/c.txt': 0
     }
   ],
   [
@@ -339,19 +376,19 @@ var cases = [
       '!abc'
     ],
     {
-      // the parent folder is included again
+      'abc': 0,
       'abc/a.js': 0,
-      'abc/': 0
     }
   ],
   [
-    'issue #10: It is not possible to re-include a file if a parent directory of that file is excluded',
+    'It is possible to re-include a file if a parent directory of that file is excluded',
     [
       '/abc/',
       '!/abc/a.js'
     ],
     {
-      'abc/a.js': 1,
+      'abc': 0,
+      'abc/a.js': 0,
       'abc/d/e.js': 1
     }
   ],
@@ -359,11 +396,15 @@ var cases = [
     'we did not know whether the rule is a dir first',
     [
       'abc',
+      'bcd/abc',
       '!bcd/abc/a.js'
     ],
     {
       'abc/a.js': 1,
-      'bcd/abc/a.js': 1
+      'bcd/abc/f.js': 1,
+      'bcd': 0,
+      'bcd/abc': 0,
+      'bcd/abc/a.js': 0
     }
   ],
   [
@@ -375,52 +416,57 @@ var cases = [
     {
       '!abc': 1,
       'abc': 0,
-      'b/!important!.txt': 1,
+      'b': 0,
+      'b/!important!.txt': 0,
       '!important!.txt': 1
     }
   ],
 
   [
-    'If the pattern ends with a slash, it is removed for the purpose of the following description, but it would only find a match with a directory',
+    'If the pattern ends with a slash, the slash is basically ignored/dropped',
     [
       'abc/'
     ],
     {
-      // actually, node-ignore have no idea about fs.Stat,
-      // you should `glob({mark: true})`
-      'abc': 0,
-      'abc/': 1,
-
-      // Actually, if there is only a trailing slash, git also treats it as a shell glob pattern
-      // 'abc/' should make 'bcd/abc/' ignored.
-      'bcd/abc/': 1
+      'abc': 1,
+      'abc/def.txt': 1
     }
   ],
 
   [
-    'If the pattern does not contain a slash /, Git treats it as a shell glob pattern',
+    'If the pattern does not contain a slash /, it\'s just a file in current directory',
     [
       'a.js',
       'f/'
     ],
     {
       'a.js': 1,
-      'b/a/a.js': 1,
-      'a/a.js': 1,
+      'a': 0,
+      'b': 0,
+      'b/a': 0,
+      'b/a/a.js': 0,
+      'a/a.js': 0,
       'b/a.jsa': 0,
-      'f/': 1,
-      'g/f/': 1
+      'f/h': 1,
+      'g': 0,
+      'g/f': 0,
+      'g/f/h': 0
     }
   ],
   [
-    'Otherwise, Git treats the pattern as a shell glob suitable for consumption by fnmatch(3) with the FNM_PATHNAME flag',
+    'Otherwise, it\'s a complete relative path',
     [
       'a/a.js'
     ],
     {
+      'a': 0,
       'a/a.js': 1,
       'a/a.jsa': 0,
+      'b': 0,
+      'b/a': 0,
       'b/a/a.js': 0,
+      'c': 0,
+      'c/a': 0,
       'c/a/a.js': 0
     }
   ],
@@ -431,8 +477,15 @@ var cases = [
       'Documentation/*.html'
     ],
     {
+      'Documentation': 0,
       'Documentation/git.html': 1,
+      'Documentation/dir.html': 1,
+      'Documentation/dir.html/test.txt': 1,
+      'Documentation/ppc': 0,
       'Documentation/ppc/ppc.html': 0,
+      'tools': 0,
+      'tools/perf': 0,
+      'tools/perf/Documentation': 0,
       'tools/perf/Documentation/perf.html': 0
     }
   ],
@@ -444,6 +497,7 @@ var cases = [
     ],
     {
       'cat-file.c': 1,
+      'mozilla-sha1': 0,
       'mozilla-sha1/sha1.c': 0
     }
   ],
@@ -455,9 +509,12 @@ var cases = [
     ],
     {
       'foo': 1,
+      'a': 0,
       'a/foo': 1,
       'foo/a': 1,
       'a/foo/a': 1,
+      'a/b': 0,
+      'a/b/c': 0,
       'a/b/c/foo/a': 1
     }
   ],
@@ -468,6 +525,7 @@ var cases = [
       '**/foo/bar'
     ],
     {
+      'foo': 0,
       'foo/bar': 1,
       'abc/foo/bar': 1,
       'abc/foo/bar/': 1
@@ -483,6 +541,8 @@ var cases = [
       'abc/a/': 1,
       'abc/b': 1,
       'abc/d/e/f/g': 1,
+      'bcd': 0,
+      'bcd/abc': 0,
       'bcd/abc/a': 0,
       'abc': 0
     }
@@ -494,9 +554,14 @@ var cases = [
       'a/**/b'
     ],
     {
+      'a': 0,
       'a/b': 1,
+      'a/x': 0,
       'a/x/b': 1,
+      'a/x/y': 0,
       'a/x/y/b': 1,
+      'b': 0,
+      'b/a': 0,
       'b/a/b': 0
     }
   ],
@@ -505,8 +570,10 @@ var cases = [
     'add a file content',
     'test/fixtures/.aignore',
     {
+      'abc': 0,
       'abc/a.js': 1,
-      'abc/b/b.js': 1,
+      'abc/b': 0,
+      'abc/b/b.js': 0,
       '#e': 0,
       '#f': 1
     }
@@ -535,10 +602,11 @@ var cases = [
   ],
 
   [
-    'issue #2: question mark should not break all things',
+    'question mark should not break all things',
     'test/fixtures/.ignore-issue-2', {
       '.project': 1,
       // remain
+      'abc': 0,
       'abc/.project': 0,
       '.a.sw': 0,
       '.a.sw?': 1,
@@ -566,10 +634,14 @@ var cases = [
     'wildcard as filename', [
       '*.b'
     ], {
-      'b/a.b': 1,
-      'b/.b': 1,
+      'b': 0,
+      '.b': 1,
+      'a.b': 1,
+      'b/.b': 0,
+      'b/a.b': 0,
       'b/.ba': 0,
-      'b/c/a.b': 1
+      'b/c': 0,
+      'b/c/a.b': 0
     }
   ],
   [
@@ -577,6 +649,7 @@ var cases = [
       '/*.c'
     ], {
       '.c': 1,
+      'c': 0,
       'c.c': 1,
       'c/c.c': 0,
       'c/d': 0
@@ -584,11 +657,13 @@ var cases = [
   ],
   [
     'dot file', [
-      '.d'
+      '.d',
+      '*/.d',
     ], {
       '.d': 1,
       '.dd': 0,
       'd.d': 0,
+      'd': 0,
       'd/.d': 1,
       'd/d.d': 0,
       'd/e': 0
@@ -596,14 +671,16 @@ var cases = [
   ],
   [
     'dot dir', [
-      '.e'
+      '.e',
+      '*/.e'
     ], {
       '.e/': 1,
-      '.ee/': 0,
-      'e.e/': 0,
+      '.ee': 0,
+      'e.e': 0,
       '.e/e': 1,
       'e/.e': 1,
       'e/e.e': 0,
+      'e': 0,
       'e/f': 0
     }
   ],
@@ -697,16 +774,13 @@ describe("cases", function() {
     })
 
 
-    // In some platform, the behavior of git command about trailing spaces
+    // TODO: Is this still applicable with dockerignore
+    // Perhaps we should update the test and remov this flag
+    // In some platform, the behavior of trailing spaces is weird
     // is not implemented as documented, so skip test
     !skip_test_test
     // Tired to handle test cases for test cases for windows
     && !IS_WINDOWS
-    // `git check-ignore` could only handles non-empty filenames
-    && paths.some(Boolean) // TODO: remove?
-    // `git check-ignore` will by default ignore .git/ directory
-    // which `node-ignore` should not do as well
-    && expected.every(notGitBuiltin)
     && it('test for test:    ' + description, function () {
       var result = getNativeDockerIgnoreResults(patterns, paths).sort()
 
@@ -761,10 +835,10 @@ describe('for coverage', function () {
 
 
 describe('github issues', function () {
-  it('#32', function () {
+  it('https://github.com/kaelzhang/node-ignore/issues/32', function () {
     var KEY_IGNORE = typeof Symbol !== 'undefined'
-      ? Symbol.for('node-ignore')
-      : 'node-ignore';
+      ? Symbol.for('docker-ignore')
+      : 'docker-ignore';
 
     var a = ignore().add(['.abc/*', '!.abc/d/'])
 
@@ -803,7 +877,7 @@ function createUniqueTmp () {
 function getNativeDockerIgnoreResults (rules, paths) {
   var dir = createUniqueTmp()
 
-  var gitignore = typeof rules === 'string'
+  var dockerignore = typeof rules === 'string'
     ? rules
     : rules.join('\n')
 
@@ -812,11 +886,11 @@ function getNativeDockerIgnoreResults (rules, paths) {
     FROM busybox
     COPY . /build-context
     WORKDIR /build-context
-    CMD find . -type f
+    CMD find .
   `
   var ignores = new Set([DockerfileName, '.dockerignore', '.']) // TODO: Include Dockerfile and .dockerignore in tests and remove this
 
-  touch(dir, '.dockerignore', gitignore)
+  touch(dir, '.dockerignore', dockerignore)
   touch(dir, DockerfileName, Dockerfile)
 
   paths.forEach(function (path, i) {
@@ -882,9 +956,4 @@ function containsInOthers (path, index, paths) {
     return p === path
     || p.indexOf(path) === 0 && p[path.length] === '/'
   })
-}
-
-
-function notGitBuiltin (filename) {
-  return filename.indexOf('.git/') !== 0
 }
