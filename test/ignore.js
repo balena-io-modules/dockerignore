@@ -860,6 +860,10 @@ it('kaelzhang/node-ignore#32'.padEnd(18), function (t) {
   t.deepEqual(b.filter(paths), ['.abc/d/e.js', '.abc/e/e.js'])
 })
 
+it('some tests take longer as docker images are built in the background ', function(t){
+  t.pass()
+})
+
 var tmpCount = 0
 var tmpRoot = tmp().name
 
@@ -919,9 +923,14 @@ async function getNativeDockerIgnoreResults (rules, paths) {
   var runProc = spawn('docker', ['run', '--rm', imageTag], {
     cwd: dir
   })
-
+  
   var out = (await getRawBody(runProc.stdout)).toString('utf8')
   dockerBuildSema.release()
+
+  await getRawBody(spawn('docker', ['rmi', imageTag], {
+    cwd: dir
+  }).stdout)
+
   return out.split('\n').map(s => removeLeading(s, './')).filter(s => Boolean(s) && !ignores.has(s));
 }
 
