@@ -1,5 +1,6 @@
 'use strict'
 
+var path = require('path')
 var minimatch = require("minimatch")
 
 module.exports = () => new IgnoreBase()
@@ -13,10 +14,10 @@ function make_array (subject) {
 }
 
 
-const REGEX_BLANK_LINE = /^\s+$/
-const REGEX_LEADING_EXCAPED_EXCLAMATION = /^\\\!/
-const REGEX_LEADING_EXCAPED_HASH = /^\\#/
-const REGEX_LEADING_SLASH = /^\//
+// const REGEX_BLANK_LINE = /^\s+$/
+// const REGEX_LEADING_EXCAPED_EXCLAMATION = /^\\\!/
+// const REGEX_LEADING_EXCAPED_HASH = /^\\#/
+// const REGEX_LEADING_SLASH = /^\//
 const SLASH = '/'
 const KEY_IGNORE = typeof Symbol !== 'undefined'
   ? Symbol.for('docker-ignore')
@@ -28,6 +29,7 @@ class IgnoreBase {
     this._rules = []
     this[KEY_IGNORE] = true
     this._initCache()
+    this._negatives = false;
   }
 
   _initCache () {
@@ -67,20 +69,20 @@ class IgnoreBase {
     }
 
     if (this._checkPattern(pattern)) {
-      const rule = this._createRule(pattern)
-      this._added = true
-      this._rules.push(rule)
+      const rule = this._createRule(pattern.trim())
+      if(rule !== null) {
+        this._added = true
+        this._rules.push(rule)
+      }
     }
   }
 
   _checkPattern (pattern) {
-    // > A blank line matches no files, so it can serve as a separator for readability.
+    // https://github.com/moby/moby/blob/4f0d95fa6ee7f865597c03b9e63702cdcb0f7067/builder/dockerignore/dockerignore.go#L33-L40
     return pattern
       && typeof pattern === 'string'
-      && !REGEX_BLANK_LINE.test(pattern)
-
-      // > A line starting with # serves as a comment.
       && pattern.indexOf('#') !== 0
+      && pattern.trim() !== ""
   }
 
   filter (paths) {
@@ -96,30 +98,39 @@ class IgnoreBase {
   }
 
   _createRule (pattern) {
+    // https://github.com/moby/moby/blob/4f0d95fa6ee7f865597c03b9e63702cdcb0f7067/builder/dockerignore/dockerignore.go#L34-L40
+    // TODO: Add link to github for dockerignore
     const origin = pattern
     let negative = false
 
     // > An optional prefix "!" which negates the pattern;
     if (pattern.indexOf('!') === 0) {
       negative = true
-      pattern = pattern.substr(1)
+      this._negatives = true;
+      pattern = pattern.substr(1).trim()
     }
 
-    pattern = pattern
-      // > Put a backslash ("\") in front of the first "!" for patterns that begin with a literal "!", for example, `"\!important!.txt"`.
-      .replace(REGEX_LEADING_EXCAPED_EXCLAMATION, '!')
-      // > Remove a leading slash because that implies current directory and already assumed by minimatch
-      .replace(REGEX_LEADING_SLASH, '')
-      // > Put a backslash ("\") in front of the first hash for patterns that begin with a hash.
-      // .replace(REGEX_LEADING_EXCAPED_HASH, '#')
+    if (pattern.length > 0) {
+      pattern = path.normalize(pattern)
+			pattern = pattern.split(path.sept).join(SLASH);
+			if (pattern.length > 1 && pattern[0] === SLASH) {
+				pattern = pattern.slice(1)
+			}
+    }
 
-    const regex = make_regex(pattern, negative)
+    pattern = pattern.trim()
+    if(pattern === "") {
+      return null
+    }
+
+    // const regex = make_regex(pattern, negative)
 
     return {
       origin,
       pattern,
+      dirs: pattern.split(path.sep),
       negative,
-      regex
+      // regex
     }
   }
 
@@ -143,46 +154,48 @@ class IgnoreBase {
 
     // For dockerignore, it is possible to re-include a file
     // even if a parent directory of that file is excluded.
-    const parentIsIncluded = !slices.length || this._filter(slices.join(SLASH) + SLASH, slices);
+    // const parentIsIncluded = !slices.length || this._filter(slices.join(SLASH) + SLASH, slices);
 
-    if (parentIsIncluded) {
+    // if (parentIsIncluded) {
       return this._test(path)
-    } else {
-      // if a parent is ignored, the current file may still be included
-      // if the path or a child is included
-      let r = this._test(path, true);
-      return r
-    }
+    // } else {
+    //   // if a parent is ignored, the current file may still be included
+    //   // if the path or a child is included
+    //   let r = this._test(path, true);
+    //   return r
+    // }
   }
 
   // @returns {Boolean} true if a file is NOT ignored
-  _test (path, proveItIsWhitelisted) {
-    // Explicitly define variable type by setting matched to `0`
-    let matched = proveItIsWhitelisted ? 1 : 0
+  _test (file) {
+    file = file.split(SLASH).join(path.sep)
+    const parentPath = path.normalize(path.dirname(file))
+    let parentPathDirs = parentPath.split(path.sep)
+    
+    let matched = false;
 
-    // console.log('testing %O' + (proveItIsWhitelisted ? 'and proving it\'s whitelisted' : ''), path)
-
-    path = path.trim()
     this._rules.forEach(rule => {
-      if (matched && rule.negative) {
-        // if matched = true, then we only test negative rules
-        matched = minimatch(path,  rule.pattern)
-        // in addition to checking if a path gets unmatched, 
-        // we check if any parent is negated by this rule too
-        const parentPath = path.split(SLASH).slice(0, -1).join(SLASH) + SLASH;
-
-
-      } else if(!matched && !rule.negative) {
-        // if matched = false, then we test non-negative rules
-        matched = minimatch(path,  rule.pattern)
+      let match = this._match(file, rule)
+  
+      if (!match && parentPath !== ".") {
+        // Check to see if the pattern matches one of our parent dirs.
+        if (rule.dirs.length <= parentPathDirs.length) {
+          match = this._match(parentPathDirs.slice(0, rule.dirs.length).join(path.sep), rule)
+        }
+      }
+  
+      if (match) {
+        matched = !rule.negative
       }
     })
-
-    console.log(`%O was not ignored: %O`, path, !matched)
-    console.log(`was previously blacklisted? %O`, !!proveItIsWhitelisted)
-
-
+  
     return !matched
+  }
+
+  // @returns {Boolean} true if a file is matched by a rule
+  _match(file, rule) {
+    // TODO: use regex?
+    return minimatch(file, rule.pattern)
   }
 }
 
