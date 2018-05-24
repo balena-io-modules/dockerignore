@@ -1,5 +1,7 @@
 'use strict'
 
+var minimatch = require("minimatch")
+
 module.exports = () => new IgnoreBase()
 
 
@@ -14,10 +16,10 @@ function make_array (subject) {
 const REGEX_BLANK_LINE = /^\s+$/
 const REGEX_LEADING_EXCAPED_EXCLAMATION = /^\\\!/
 const REGEX_LEADING_EXCAPED_HASH = /^\\#/
+const REGEX_LEADING_SLASH = /^\//
 const SLASH = '/'
 const KEY_IGNORE = typeof Symbol !== 'undefined'
   ? Symbol.for('docker-ignore')
-  /* istanbul ignore next */
   : 'docker-ignore'
 
 
@@ -106,8 +108,10 @@ class IgnoreBase {
     pattern = pattern
       // > Put a backslash ("\") in front of the first "!" for patterns that begin with a literal "!", for example, `"\!important!.txt"`.
       .replace(REGEX_LEADING_EXCAPED_EXCLAMATION, '!')
+      // > Remove a leading slash because that implies current directory and already assumed by minimatch
+      .replace(REGEX_LEADING_SLASH, '')
       // > Put a backslash ("\") in front of the first hash for patterns that begin with a hash.
-      .replace(REGEX_LEADING_EXCAPED_HASH, '#')
+      // .replace(REGEX_LEADING_EXCAPED_HASH, '#')
 
     const regex = make_regex(pattern, negative)
 
@@ -137,28 +141,46 @@ class IgnoreBase {
 
     slices.pop()
 
-    return this._cache[path] = slices.length
-      // > It is not possible to re-include a file if a parent directory of that file is excluded.
-      // If the path contains a parent directory, check the parent first
-      ? this._filter(slices.join(SLASH) + SLASH, slices)
-        && this._test(path)
+    // For dockerignore, it is possible to re-include a file
+    // even if a parent directory of that file is excluded.
+    const parentIsIncluded = !slices.length || this._filter(slices.join(SLASH) + SLASH, slices);
 
-      // Or only test the path
-      : this._test(path)
+    if (parentIsIncluded) {
+      return this._test(path)
+    } else {
+      // if a parent is ignored, the current file may still be included
+      // if the path or a child is included
+      let r = this._test(path, true);
+      return r
+    }
   }
 
   // @returns {Boolean} true if a file is NOT ignored
-  _test (path) {
+  _test (path, proveItIsWhitelisted) {
     // Explicitly define variable type by setting matched to `0`
-    let matched = 0
+    let matched = proveItIsWhitelisted ? 1 : 0
 
+    // console.log('testing %O' + (proveItIsWhitelisted ? 'and proving it\'s whitelisted' : ''), path)
+
+    path = path.trim()
     this._rules.forEach(rule => {
-      // if matched = true, then we only test negative rules
-      // if matched = false, then we test non-negative rules
-      if (!(matched ^ rule.negative)) {
-        matched = rule.negative ^ rule.regex.test(path)
+      if (matched && rule.negative) {
+        // if matched = true, then we only test negative rules
+        matched = minimatch(path,  rule.pattern)
+        // in addition to checking if a path gets unmatched, 
+        // we check if any parent is negated by this rule too
+        const parentPath = path.split(SLASH).slice(0, -1).join(SLASH) + SLASH;
+
+
+      } else if(!matched && !rule.negative) {
+        // if matched = false, then we test non-negative rules
+        matched = minimatch(path,  rule.pattern)
       }
     })
+
+    console.log(`%O was not ignored: %O`, path, !matched)
+    console.log(`was previously blacklisted? %O`, !!proveItIsWhitelisted)
+
 
     return !matched
   }
@@ -247,15 +269,7 @@ const DEFAULT_REPLACER_SUFFIX = [
     // there will be no leading '/' (which has been replaced by section "leading slash")
     // If starts with '**', adding a '^' to the regular expression also works
     /^(?=[^\^])/,
-    function () {
-      return !/\/(?!$)/.test(this)
-        // > If the pattern does not contain a slash /, Git treats it as a shell glob pattern
-        // Actually, if there is only a trailing slash, git also treats it as a shell glob pattern
-        ? '(?:^|\\/)'
-
-        // > Otherwise, Git treats the pattern as a shell glob suitable for consumption by fnmatch(3)
-        : '^'
-    }
+    () =>  '^'
   ],
 
   // two globstars
@@ -311,6 +325,7 @@ const DEFAULT_REPLACER_SUFFIX = [
 
         // 'a*' matches 'a'
         // 'a*' matches 'aa'
+        // 'a*' matches 'aa/'
         : '[^/]*'
 
     ) + '(?=$|\\/$)'

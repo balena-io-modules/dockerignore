@@ -1,48 +1,48 @@
 'use strict'
 
 // For old node.js versions, we use es5
-var fs = require('fs')
-var ignore = require('../')
-var expect = require('chai').expect
-var spawn = require('child_process').spawn
-var tmp = require('tmp').dirSync
-var mkdirp = require('mkdirp').sync
-var path = require('path')
-var rm = require('rimraf').sync
-var preSuf = require('pre-suf')
-var getRawBody = require('raw-body')
-var it = require('ava')
-var Sema = require('async-sema')
-var cuid = require('cuid')
+let fs = require('fs')
+let ignore = require('../')
+let expect = require('chai').expect
+let spawn = require('child_process').spawn
+let tmp = require('tmp').dirSync
+let mkdirp = require('mkdirp').sync
+let path = require('path')
+let rm = require('rimraf').sync
+let preSuf = require('pre-suf')
+let getRawBody = require('raw-body')
+let it = require('ava')
+let Sema = require('async-sema')
+let cuid = require('cuid')
 
-var removeEnding = preSuf.removeEnding
-var removeLeading = preSuf.removeLeading
+let removeEnding = preSuf.removeEnding
+let removeLeading = preSuf.removeLeading
 
-var IS_WINDOWS = process.platform === 'win32'
-var SHOULD_TEST_WINDOWS = !process.env.IGNORE_TEST_WIN32
+let IS_WINDOWS = process.platform === 'win32'
+let SHOULD_TEST_WINDOWS = !process.env.IGNORE_TEST_WIN32
   && IS_WINDOWS
-var PARALLEL_DOCKER_BUILDS = 6
+let PARALLEL_DOCKER_BUILDS = 6
 
-var cases = [
-  [
-    'spaces are accepted in patterns. "\\ " doesn\'t mean anything special',
-    [
-      'abc d',
-      'abc\ e',
-      'abc\\ f',
-      'abc/a b c'
-    ],
-    {
-      'abc d': 1,
-      'abc\ e': 1,
-      'abc/a b c': 1,
-      'abc\\ f': 0,
-      'abc': 0,
-      'abc/abc d': 0,
-      'abc/abc e': 0,
-      'abc/abc f': 0
-    }
-  ],
+let cases = [
+  // [
+  //   'spaces are accepted in patterns. "\\ " doesn\'t mean anything special',
+  //   [
+  //     'abc d',
+  //     'abc\ e',
+  //     'abc\\ f',
+  //     'abc/a b c'
+  //   ],
+  //   {
+  //     'abc d': 1,
+  //     'abc\ e': 1,
+  //     'abc/a b c': 1,
+  //     'abc\\ f': 0,
+  //     'abc': 0,
+  //     'abc/abc d': 0,
+  //     'abc/abc e': 0,
+  //     'abc/abc f': 0
+  //   }
+  // ],
   [
     'special cases: invalid empty paths, just ignore',
     [
@@ -60,7 +60,6 @@ var cases = [
     ],
     {
       '.ftpconfig': 1,
-      '.git': 0,
       '.git/config': 0,
       '.git/description': 1
     }
@@ -81,9 +80,7 @@ var cases = [
       'tempa/something.txt': 1,
       'tempb/something.txt': 1,
       'something.txt': 0,
-      'somedir': 0,
       'somedir/something.txt': 0,
-      'somedir/subdir': 0,
       'somedir/subdir/something.txt': 0,
     }
   ],
@@ -137,9 +134,6 @@ var cases = [
       '!a/b/\\*/index.html'
     ],
     {
-      'a': 0,
-      'a/b': 0,
-      'a/b/*': 0,
       'a/b/*/index.html': 0,
       'a/b/index.html': 1,
       'index.html': 1
@@ -155,11 +149,6 @@ var cases = [
       '!b/\*/index.html'
     ],
     {
-      'a': 0,
-      'a/b': 0,
-      'a/b/*': 0,
-      'b': 0,
-      'b/*': 0,
       'a/b/*/index.html': 1,
       'a/b/index.html': 1,
       'b/*/index.html': 0,
@@ -175,9 +164,6 @@ var cases = [
       '!a/b/*/index.html'
     ],
     {
-      'a': 0,
-      'a/b': 0,
-      'a/b/*': 0,
       'a/b/*/index.html': 0,
       'a/b/index.html': 1,
       'index.html': 1,
@@ -191,10 +177,7 @@ var cases = [
       '!/node_modules/package'
     ],
     {
-      'node_modules': 0,
-      'node_modules/a': 0,
       'node_modules/a/a.js': 0,
-      'node_modules/package': 0,
       'node_modules/package/a.js': 0
     }
   ],
@@ -205,7 +188,6 @@ var cases = [
       'foo/*'
     ],
     {
-      'foo': 0,
       'foo/bar.js': 1,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1
@@ -219,7 +201,6 @@ var cases = [
       'foo/**'
     ],
     {
-      'foo': 0,
       'foo/bar.js': 1,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1
@@ -233,7 +214,6 @@ var cases = [
       'foo/**/**'
     ],
     {
-      'foo': 0,
       'foo/bar': 1,
       'foo/bar.js': 1,
       'foo/bar2.js': 1,
@@ -248,7 +228,6 @@ var cases = [
       '!foo/bar.js'
     ],
     {
-      'foo': 0,
       'foo/bar.js': 0,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1
@@ -262,7 +241,6 @@ var cases = [
       '!foo/bar.js'
     ],
     {
-      'foo': 0,
       'foo/bar.js': 0,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1
@@ -276,7 +254,6 @@ var cases = [
       '!foo/bar.js'
     ],
     {
-      'foo': 0,
       'foo/bar.js': 0,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1
@@ -302,8 +279,6 @@ var cases = [
       '!.abc/d/'
     ],
     {
-      '.abc': 0,
-      '.abc/d': 0,
       '.abc/a.js': 1,
       '.abc/d/e.js': 0
     }
@@ -319,8 +294,6 @@ var cases = [
     {
       '.abc/a.js': 1,
       // but '.abc/d/e.js' won't be (unlike gitignore)
-      '.abc': 0,
-      '.abc/d': 0,
       '.abc/d/e.js': 0
     }
   ],
@@ -332,8 +305,6 @@ var cases = [
     ],
     {
       'a.txt': 0,
-      'a': 0,
-      'a/b': 0,
       'a/b/c.txt': 0
     }
   ],
@@ -346,13 +317,15 @@ var cases = [
   ],
   [
     'Put a backslash ("\\") in front of the first hash for patterns that begin with a hash.',
-    ['\\#abc'],
+    [
+      '\\#abc'
+    ],
     {
       '#abc': 1
     }
   ],
   [
-    'Trailing spaces are ignored unless they are quoted with backslash ("\")',
+    'Trailing spaces are ignored unless they are quoted with backslash ("\\")',
     [
       'abc\\  ', // only one space left -> (abc )
       'bcd  ',   // no space left -> (bcd)
@@ -360,14 +333,14 @@ var cases = [
     ],
     {
       // nothing to do with backslashes
-      'abc\\  ': 0,
+      'abc\\  ': 1,
       'abc  ': 0,
-      'abc ': 1,
+      'abc ': 0,
       'abc   ': 0,
       'bcd': 1,
-      'bcd ': 0,
-      'bcd  ': 0,
-      'cde  ': 1,
+      'bcd ': 1,
+      'bcd  ': 1,
+      'cde  ': 0,
       'cde ': 0,
       'cde   ': 0
     },
@@ -381,18 +354,16 @@ var cases = [
       '!abc'
     ],
     {
-      'abc': 0,
       'abc/a.js': 0,
     }
   ],
   [
     'It is possible to re-include a file if a parent directory of that file is excluded',
     [
-      '/abc/',
-      '!/abc/a.js'
+      'abc/',
+      '!abc/a.js'
     ],
     {
-      'abc': 0,
       'abc/a.js': 0,
       'abc/d/e.js': 1
     }
@@ -407,25 +378,22 @@ var cases = [
     {
       'abc/a.js': 1,
       'bcd/abc/f.js': 1,
-      'bcd': 0,
-      'bcd/abc': 0,
       'bcd/abc/a.js': 0
     }
   ],
-  [
-    'Put a backslash ("\\") in front of the first "!" for patterns that begin with a literal "!"',
-    [
-      '\\!abc',
-      '\\!important!.txt'
-    ],
-    {
-      '!abc': 1,
-      'abc': 0,
-      'b': 0,
-      'b/!important!.txt': 0,
-      '!important!.txt': 1
-    }
-  ],
+  // [
+  //   'Put a backslash ("\\") in front of the first "!" for patterns that begin with a literal "!"',
+  //   [
+  //     '\\!abc',
+  //     '\\!important!.txt'
+  //   ],
+  //   {
+  //     '!abc': 1,
+  //     'abc': 0,
+  //     'b/!important!.txt': 0,
+  //     '!important!.txt': 1
+  //   }
+  // ],
 
   [
     'If the pattern ends with a slash, the slash is basically ignored/dropped',
@@ -433,7 +401,6 @@ var cases = [
       'abc/'
     ],
     {
-      'abc': 1,
       'abc/def.txt': 1
     }
   ],
@@ -446,15 +413,10 @@ var cases = [
     ],
     {
       'a.js': 1,
-      'a': 0,
-      'b': 0,
-      'b/a': 0,
       'b/a/a.js': 0,
       'a/a.js': 0,
       'b/a.jsa': 0,
       'f/h': 1,
-      'g': 0,
-      'g/f': 0,
       'g/f/h': 0
     }
   ],
@@ -464,14 +426,9 @@ var cases = [
       'a/a.js'
     ],
     {
-      'a': 0,
       'a/a.js': 1,
       'a/a.jsa': 0,
-      'b': 0,
-      'b/a': 0,
       'b/a/a.js': 0,
-      'c': 0,
-      'c/a': 0,
       'c/a/a.js': 0
     }
   ],
@@ -482,30 +439,23 @@ var cases = [
       'Documentation/*.html'
     ],
     {
-      'Documentation': 0,
       'Documentation/git.html': 1,
-      'Documentation/dir.html': 1,
       'Documentation/dir.html/test.txt': 1,
-      'Documentation/ppc': 0,
       'Documentation/ppc/ppc.html': 0,
-      'tools': 0,
-      'tools/perf': 0,
-      'tools/perf/Documentation': 0,
       'tools/perf/Documentation/perf.html': 0
     }
   ],
 
-  [
-    'A leading slash matches the beginning of the pathname',
-    [
-      '/*.c'
-    ],
-    {
-      'cat-file.c': 1,
-      'mozilla-sha1': 0,
-      'mozilla-sha1/sha1.c': 0
-    }
-  ],
+  // [
+  //   'A leading slash matches the beginning of the pathname',
+  //   [
+  //     '/*.c'
+  //   ],
+  //   {
+  //     'cat-file.c': 0,
+  //     'mozilla-sha1/sha1.c': 0
+  //   }
+  // ],
 
   [
     'A leading "**" followed by a slash means match in all directories',
@@ -513,13 +463,8 @@ var cases = [
       '**/foo'
     ],
     {
-      'foo': 1,
-      'a': 0,
-      'a/foo': 1,
       'foo/a': 1,
       'a/foo/a': 1,
-      'a/b': 0,
-      'a/b/c': 0,
       'a/b/c/foo/a': 1
     }
   ],
@@ -530,7 +475,6 @@ var cases = [
       '**/foo/bar'
     ],
     {
-      'foo': 0,
       'foo/bar': 1,
       'abc/foo/bar': 1,
       'abc/foo/bar/': 1
@@ -540,16 +484,13 @@ var cases = [
   [
     'A trailing "/**" matches everything inside',
     [
-      'abc/**'
+      'abc/**',
+      '*/abc/**',
     ],
     {
-      'abc/a/': 1,
       'abc/b': 1,
       'abc/d/e/f/g': 1,
-      'bcd': 0,
-      'bcd/abc': 0,
-      'bcd/abc/a': 0,
-      'abc': 0
+      'bcd/abc/a': 1
     }
   ],
 
@@ -559,14 +500,12 @@ var cases = [
       'a/**/b'
     ],
     {
-      'a': 0,
       'a/b': 1,
-      'a/x': 0,
+      'a/x/a': 0,
       'a/x/b': 1,
-      'a/x/y': 0,
+      'a/x/y/a': 0,
       'a/x/y/b': 1,
-      'b': 0,
-      'b/a': 0,
+      'b/a.txt': 0,
       'b/a/b': 0
     }
   ],
@@ -575,43 +514,60 @@ var cases = [
     'add a file content',
     'test/fixtures/.aignore',
     {
-      'abc': 0,
       'abc/a.js': 1,
-      'abc/b': 0,
       'abc/b/b.js': 0,
       '#e': 0,
       '#f': 1
     }
   ],
 
-  // old test cases
   [
-    'should excape metacharacters of regular expressions', [
-      '*.js',
-      '!\\*.js',
-      '!a#b.js',
-      '!?.js',
-
-      // comments
-      '#abc',
-
-      '\\#abc'
-    ], {
-      '*.js': 0,
-      'abc.js': 1,
-      'a#b.js': 0,
-      'abc': 0,
-      '#abc': 1,
-      '?.js': 0
+    'test a dockerignore file that faile in now-cli',
+    'test/fixtures/.now-ignore',
+    {
+      '.dockerignore': 1,
+      '.flowconfig': 1,
+      '.gitignore': 1,
+      'Dockerfile': 1,
+      'now.json': 1,
+      'package.json': 0,
+      'readme.md': 1,
+      'rollup.config.js': 0,
+      'yarn.lock': 0,
+      '.git': 1,
+      'src/index.js': 0,
+      'src/main.js': 0,
+      'src/schemas/index.js': 0,
     }
   ],
+
+  // old test cases
+  // [
+  //   'should excape metacharacters of regular expressions', [
+  //     '*.js',
+  //     '!\\*.js',
+  //     '!a#b.js',
+  //     '!?.js',
+
+  //     // comments
+  //     '#abc',
+
+  //     '\\#abc'
+  //   ], {
+  //     '*.js': 0,
+  //     'abc.js': 1,
+  //     'a#b.js': 0,
+  //     'abc': 0,
+  //     '#abc': 1,
+  //     '?.js': 0
+  //   }
+  // ],
 
   [
     'question mark should not break all things',
     'test/fixtures/.ignore-issue-2', {
-      '.project': 1,
+      '.project': 0,
       // remain
-      'abc': 0,
       'abc/.project': 0,
       '.a.sw': 0,
       '.a.sw?': 1,
@@ -622,30 +578,37 @@ var cases = [
     'dir ended with "*"', [
       'abc/*'
     ], {
-      'abc': 0
+      'abd': 0,
+      'abc/def.txt': 1,
+      'abc/def/ghi': 1
     }
   ],
   [
     'file ended with "*"', [
-      'abc.js*',
+      'abc*',
     ], {
-      'abc.js/': 1,
-      'abc.js/abc': 1,
-      'abc.jsa/': 1,
-      'abc.jsa/abc': 1
+      'abc': 1,
+      'abcdef': 1,
+      'abcd/test.txt': 1
+    }
+  ],
+  [
+    'dir ended with "*"', [
+      'abc*',
+    ], {
+      'abc': 1,
+      'abc/def.txt': 1
     }
   ],
   [
     'wildcard as filename', [
       '*.b'
     ], {
-      'b': 0,
-      '.b': 1,
+      '.b': 0,
       'a.b': 1,
       'b/.b': 0,
       'b/a.b': 0,
       'b/.ba': 0,
-      'b/c': 0,
       'b/c/a.b': 0
     }
   ],
@@ -653,9 +616,8 @@ var cases = [
     'slash at the beginning and come with a wildcard', [
       '/*.c'
     ], {
-      '.c': 1,
-      'c': 0,
-      'c.c': 1,
+      '.c': 0,
+      'c.c': 0,
       'c/c.c': 0,
       'c/d': 0
     }
@@ -708,7 +670,7 @@ var cases = [
   ]
 ]
 
-var cases_to_test_only = cases.filter(function (c) {
+let cases_to_test_only = cases.filter(function (c) {
   return c[3]
 })
 
@@ -716,25 +678,25 @@ function readPatterns(file) {
   return fs.readFileSync(file).toString()
 }
 
-var real_cases = cases_to_test_only.length
+let real_cases = cases_to_test_only.length
   ? cases_to_test_only
   : cases
 
 real_cases.forEach(function(c) {
-  var description = c[0]
-  var patterns = c[1]
-  var paths_object = c[2]
-  var skip_test_test = c[4]
+  const description = c[0]
+  let patterns = c[1]
+  const paths_object = c[2]
+  const skip_test_test = c[4]
 
   if (typeof patterns === 'string') {
     patterns = readPatterns(patterns)
   }
 
   // All paths to test
-  var paths = Object.keys(paths_object)
+  let paths = Object.keys(paths_object)
 
   // paths that NOT ignored
-  var expected = paths
+  let expected = paths
   .filter(function(p) {
     return !paths_object[p]
   })
@@ -749,16 +711,17 @@ real_cases.forEach(function(c) {
   }
 
   it('.filter():'.padEnd(18) + description, function(t) {
-    var ig = ignore()
-    var result = ig
+    let ig = ignore()
+    let result = ig
       .addPattern(patterns)
       .filter(paths)
 
+    console.log('%O %O', result, expected)
     expect_result(t, result)
   })
 
   it('.createFilter():'.padEnd(18) + description, function(t) {
-    var result = paths.filter(
+    let result = paths.filter(
       ignore()
       .addPattern(patterns)
       .createFilter(),
@@ -770,7 +733,7 @@ real_cases.forEach(function(c) {
   })
 
   it('.ignores(path):'.padEnd(18) + description, function (t) {
-    var ig = ignore().addPattern(patterns)
+    let ig = ignore().addPattern(patterns)
 
     Object.keys(paths_object).forEach(function (path) {
       t.is(ig.ignores(path), !!paths_object[path])
@@ -786,16 +749,17 @@ real_cases.forEach(function(c) {
   // Tired to handle test cases for test cases for windows
   && !IS_WINDOWS
   && it('is test correct:'.padEnd(18) + description, async function (t) {
-    var result = (await getNativeDockerIgnoreResults(patterns, paths)).sort()
+    let result = (await getNativeDockerIgnoreResults(patterns, paths)).sort()
 
+    console.log('%O %O', result, expected)
     expect_result(t, result)
   })
 
   SHOULD_TEST_WINDOWS && it('win32: .filter():'.padEnd(18) + description, function(t) {
-    var win_paths = paths.map(make_win32)
+    let win_paths = paths.map(make_win32)
 
-    var ig = ignore()
-    var result = ig
+    let ig = ignore()
+    let result = ig
       .addPattern(patterns)
       .filter(win_paths)
 
@@ -804,10 +768,10 @@ real_cases.forEach(function(c) {
 })
 
 it('.add(<Ignore>)'.padEnd(18), function(t) {
-  var a = ignore().add(['.abc/*', '!.abc/d/'])
-  var b = ignore().add(a).add('!.abc/e/')
+  let a = ignore().add(['.abc/*', '!.abc/d/'])
+  let b = ignore().add(a).add('!.abc/e/')
 
-  var paths = [
+  let paths = [
     '.abc/a.js',    // filtered out
     '.abc/d/e.js',  // included
     '.abc/e/e.js'   // included by b, filtered out by a
@@ -823,7 +787,7 @@ function make_win32 (path) {
 
 
 it('fixes babel class'.padEnd(18), function (t) {
-  var constructor = ignore().constructor
+  let constructor = ignore().constructor
 
   try {
     constructor()
@@ -837,20 +801,20 @@ it('fixes babel class'.padEnd(18), function (t) {
 
 
 it('kaelzhang/node-ignore#32'.padEnd(18), function (t) {
-  var KEY_IGNORE = typeof Symbol !== 'undefined'
+  let KEY_IGNORE = typeof Symbol !== 'undefined'
     ? Symbol.for('docker-ignore')
     : 'docker-ignore';
 
-  var a = ignore().add(['.abc/*', '!.abc/d/'])
+  let a = ignore().add(['.abc/*', '!.abc/d/'])
 
   // aa is actually not an IgnoreBase instance
-  var aa = {}
+  let aa = {}
   aa._rules = a._rules.slice()
   aa[KEY_IGNORE] = true
 
-  var b = ignore().add(aa).add('!.abc/e/')
+  let b = ignore().add(aa).add('!.abc/e/')
 
-  var paths = [
+  let paths = [
     '.abc/a.js',    // filtered out
     '.abc/d/e.js',  // included
     '.abc/e/e.js'   // included by b, filtered out by a
@@ -864,12 +828,12 @@ it('some tests take longer as docker images are built in the background ', funct
   t.pass()
 })
 
-var tmpCount = 0
-var tmpRoot = tmp().name
+let tmpCount = 0
+let tmpRoot = tmp().name
 
 
 function createUniqueTmp () {
-  var dir = path.join(tmpRoot, String(tmpCount ++))
+  let dir = path.join(tmpRoot, String(tmpCount ++))
   // Make sure the dir not exists,
   // clean up dirty things
   rm(dir)
@@ -878,24 +842,24 @@ function createUniqueTmp () {
 }
 
 // number of docker builds in parallel
-var dockerBuildSema = new Sema(PARALLEL_DOCKER_BUILDS, {capacity: cases.length})
+let dockerBuildSema = new Sema(PARALLEL_DOCKER_BUILDS, {capacity: cases.length})
 async function getNativeDockerIgnoreResults (rules, paths) {
   await dockerBuildSema.acquire()
-  var dir = createUniqueTmp()
-  var imageTag = cuid()
+  const dir = createUniqueTmp()
+  const imageTag = cuid()
 
-  var dockerignore = typeof rules === 'string'
+  const dockerignore = typeof rules === 'string'
     ? rules
     : rules.join('\n')
 
-  var DockerfileName = 'Dockerfile.build-context'
-  var Dockerfile = `
+  const DockerfileName = 'Dockerfile.build-context'
+  const Dockerfile = `
     FROM busybox
     COPY . /build-context
     WORKDIR /build-context
-    CMD find .
+    CMD find . -type f
   `
-  var ignores = new Set([DockerfileName, '.dockerignore', '.']) // TODO: Include Dockerfile and .dockerignore in tests and remove this
+  const ignores = new Set([DockerfileName, '.dockerignore', '.']) // TODO: Include Dockerfile and .dockerignore in tests and remove this
 
   touch(dir, '.dockerignore', dockerignore)
   touch(dir, DockerfileName, Dockerfile)
@@ -920,11 +884,14 @@ async function getNativeDockerIgnoreResults (rules, paths) {
     cwd: dir
   }).stdout)
 
-  var runProc = spawn('docker', ['run', '--rm', imageTag], {
+  let runProc = spawn('docker', ['run', '--rm', imageTag], {
     cwd: dir
   })
   
-  var out = (await getRawBody(runProc.stdout)).toString('utf8')
+  const out = (await getRawBody(runProc.stdout)).toString('utf8')
+
+  console.log(out)
+
   dockerBuildSema.release()
 
   await getRawBody(spawn('docker', ['rmi', imageTag], {
@@ -938,10 +905,10 @@ async function getNativeDockerIgnoreResults (rules, paths) {
 function touch (root, file, content) {
   // file = specialCharInFileOrDir(file)
 
-  var dirs = file.split('/')
-  var basename = dirs.pop()
+  let dirs = file.split('/')
+  let basename = dirs.pop()
 
-  var dir = dirs.join('/')
+  let dir = dirs.join('/')
 
   if (dir) {
     mkdirp(path.join(root, dir))

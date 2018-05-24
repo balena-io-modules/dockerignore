@@ -10,7 +10,7 @@
   "scripts": {
     "prepublish": "npm run build",
     "build": "babel -o ignore.js index.js",
-    "test": "npm run build && nyc ava ./test/ignore.js && codecov",
+    "test": "npm run build && nyc ava ./test/ignore.js --fail-fast && codecov",
     "test-no-cov": "npm run build && ava ./test/ignore.js",
     "cov-report": "nyc report"
   },
@@ -51,5 +51,8 @@
     "raw-body": "^2.3.3",
     "rimraf": "^2.6.2",
     "tmp": "0.0.33"
+  },
+  "dependencies": {
+    "minimatch": "^3.0.4"
   }
 }
