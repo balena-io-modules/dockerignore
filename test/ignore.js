@@ -4,12 +4,16 @@
 var fs = require('fs')
 var ignore = require('../')
 var expect = require('chai').expect
-var spawn = require('spawn-sync')
+var spawn = require('child_process').spawn
 var tmp = require('tmp').dirSync
 var mkdirp = require('mkdirp').sync
 var path = require('path')
 var rm = require('rimraf').sync
 var preSuf = require('pre-suf')
+var getRawBody = require('raw-body')
+var it = require('ava')
+var Sema = require('async-sema')
+var cuid = require('cuid')
 
 var removeEnding = preSuf.removeEnding
 var removeLeading = preSuf.removeLeading
@@ -17,6 +21,7 @@ var removeLeading = preSuf.removeLeading
 var IS_WINDOWS = process.platform === 'win32'
 var SHOULD_TEST_WINDOWS = !process.env.IGNORE_TEST_WIN32
   && IS_WINDOWS
+var PARALLEL_DOCKER_BUILDS = 6
 
 var cases = [
   [
@@ -291,7 +296,7 @@ var cases = [
   ],
 
   [
-    'Negate direcory inside ignored directory',
+    'Negate directory inside ignored directory',
     [
       '.abc/*',
       '!.abc/d/'
@@ -715,103 +720,101 @@ var real_cases = cases_to_test_only.length
   ? cases_to_test_only
   : cases
 
-describe("cases", function() {
-  real_cases.forEach(function(c) {
-    var description = c[0]
-    var patterns = c[1]
-    var paths_object = c[2]
-    var skip_test_test = c[4]
+real_cases.forEach(function(c) {
+  var description = c[0]
+  var patterns = c[1]
+  var paths_object = c[2]
+  var skip_test_test = c[4]
 
-    if (typeof patterns === 'string') {
-      patterns = readPatterns(patterns)
+  if (typeof patterns === 'string') {
+    patterns = readPatterns(patterns)
+  }
+
+  // All paths to test
+  var paths = Object.keys(paths_object)
+
+  // paths that NOT ignored
+  var expected = paths
+  .filter(function(p) {
+    return !paths_object[p]
+  })
+  .sort()
+
+  function expect_result(t, result, mapper) {
+    if (mapper) {
+      expected = expected.map(mapper)
     }
 
-    // All paths to test
-    var paths = Object.keys(paths_object)
+    t.deepEqual(result.sort(), expected.sort())
+  }
 
-    // paths that NOT ignored
-    var expected = paths
-    .filter(function(p) {
-      return !paths_object[p]
-    })
-    .sort()
+  it('.filter():'.padEnd(18) + description, function(t) {
+    var ig = ignore()
+    var result = ig
+      .addPattern(patterns)
+      .filter(paths)
 
-    function expect_result(result, mapper) {
-      if (mapper) {
-        expected = expected.map(mapper)
-      }
+    expect_result(t, result)
+  })
 
-      expect(result.sort()).to.deep.equal(expected.sort())
-    }
+  it('.createFilter():'.padEnd(18) + description, function(t) {
+    var result = paths.filter(
+      ignore()
+      .addPattern(patterns)
+      .createFilter(),
+      // thisArg should be binded
+      null
+    )
 
-    it('.filter():        ' + description, function() {
-      var ig = ignore()
-      var result = ig
-        .addPattern(patterns)
-        .filter(paths)
+    expect_result(t, result)
+  })
 
-      expect_result(result)
-    })
+  it('.ignores(path):'.padEnd(18) + description, function (t) {
+    var ig = ignore().addPattern(patterns)
 
-    it('.createFilter():  ' + description, function() {
-      var result = paths.filter(
-        ignore()
-        .addPattern(patterns)
-        .createFilter(),
-        // thisArg should be binded
-        null
-      )
-
-      expect_result(result)
-    })
-
-    it('.ignores(path):   ' + description, function () {
-      var ig = ignore().addPattern(patterns)
-
-      Object.keys(paths_object).forEach(function (path) {
-        expect(ig.ignores(path)).to.equal(!!paths_object[path])
-      })
-    })
-
-
-    // TODO: Is this still applicable with dockerignore
-    // Perhaps we should update the test and remov this flag
-    // In some platform, the behavior of trailing spaces is weird
-    // is not implemented as documented, so skip test
-    !skip_test_test
-    // Tired to handle test cases for test cases for windows
-    && !IS_WINDOWS
-    && it('test for test:    ' + description, function () {
-      var result = getNativeDockerIgnoreResults(patterns, paths).sort()
-
-      expect_result(result)
-    })
-
-    SHOULD_TEST_WINDOWS && it('win32: .filter(): ' + description, function() {
-      var win_paths = paths.map(make_win32)
-
-      var ig = ignore()
-      var result = ig
-        .addPattern(patterns)
-        .filter(win_paths)
-
-      expect_result(result, make_win32)
+    Object.keys(paths_object).forEach(function (path) {
+      t.is(ig.ignores(path), !!paths_object[path])
     })
   })
 
-  it('.add(<Ignore>)', function() {
-    var a = ignore().add(['.abc/*', '!.abc/d/'])
-    var b = ignore().add(a).add('!.abc/e/')
 
-    var paths = [
-      '.abc/a.js',    // filtered out
-      '.abc/d/e.js',  // included
-      '.abc/e/e.js'   // included by b, filtered out by a
-    ]
+  // TODO: Is this still applicable with dockerignore
+  // Perhaps we should update the test and remov this flag
+  // In some platform, the behavior of trailing spaces is weird
+  // is not implemented as documented, so skip test
+  !skip_test_test
+  // Tired to handle test cases for test cases for windows
+  && !IS_WINDOWS
+  && it('is test correct:'.padEnd(18) + description, async function (t) {
+    var result = (await getNativeDockerIgnoreResults(patterns, paths)).sort()
 
-    expect(a.filter(paths)).to.eql(['.abc/d/e.js']);
-    expect(b.filter(paths)).to.eql(['.abc/d/e.js', '.abc/e/e.js']);
+    expect_result(t, result)
   })
+
+  SHOULD_TEST_WINDOWS && it('win32: .filter():'.padEnd(18) + description, function(t) {
+    var win_paths = paths.map(make_win32)
+
+    var ig = ignore()
+    var result = ig
+      .addPattern(patterns)
+      .filter(win_paths)
+
+    expect_result(t, result, make_win32)
+  })
+})
+
+it('.add(<Ignore>)'.padEnd(18), function(t) {
+  var a = ignore().add(['.abc/*', '!.abc/d/'])
+  var b = ignore().add(a).add('!.abc/e/')
+
+  var paths = [
+    '.abc/a.js',    // filtered out
+    '.abc/d/e.js',  // included
+    '.abc/e/e.js'   // included by b, filtered out by a
+  ]
+
+  t.deepEqual(a.filter(paths), ['.abc/d/e.js'])
+  t.deepEqual(b.filter(paths), ['.abc/d/e.js', '.abc/e/e.js'])
 })
 
 function make_win32 (path) {
@@ -819,45 +822,42 @@ function make_win32 (path) {
 }
 
 
-describe('for coverage', function () {
-  it('fixes babel class', function () {
-    var constructor = ignore().constructor
+it('fixes babel class'.padEnd(18), function (t) {
+  var constructor = ignore().constructor
 
-    try {
-      constructor()
-    } catch (e) {
-      return
-    }
+  try {
+    constructor()
+  } catch (e) {
+    t.pass()
+    return
+  }
 
-    expect('there should be an error').to.equal('no error found')
-  })
+  t.fail()
 })
 
 
-describe('github issues', function () {
-  it('https://github.com/kaelzhang/node-ignore/issues/32', function () {
-    var KEY_IGNORE = typeof Symbol !== 'undefined'
-      ? Symbol.for('docker-ignore')
-      : 'docker-ignore';
+it('kaelzhang/node-ignore#32'.padEnd(18), function (t) {
+  var KEY_IGNORE = typeof Symbol !== 'undefined'
+    ? Symbol.for('docker-ignore')
+    : 'docker-ignore';
 
-    var a = ignore().add(['.abc/*', '!.abc/d/'])
+  var a = ignore().add(['.abc/*', '!.abc/d/'])
 
-    // aa is actually not an IgnoreBase instance
-    var aa = {}
-    aa._rules = a._rules.slice()
-    aa[KEY_IGNORE] = true
+  // aa is actually not an IgnoreBase instance
+  var aa = {}
+  aa._rules = a._rules.slice()
+  aa[KEY_IGNORE] = true
 
-    var b = ignore().add(aa).add('!.abc/e/')
+  var b = ignore().add(aa).add('!.abc/e/')
 
-    var paths = [
-      '.abc/a.js',    // filtered out
-      '.abc/d/e.js',  // included
-      '.abc/e/e.js'   // included by b, filtered out by a
-    ]
+  var paths = [
+    '.abc/a.js',    // filtered out
+    '.abc/d/e.js',  // included
+    '.abc/e/e.js'   // included by b, filtered out by a
+  ]
 
-    expect(a.filter(paths)).to.eql(['.abc/d/e.js']);
-    expect(b.filter(paths)).to.eql(['.abc/d/e.js', '.abc/e/e.js']);
-  })
+  t.deepEqual(a.filter(paths), ['.abc/d/e.js'])
+  t.deepEqual(b.filter(paths), ['.abc/d/e.js', '.abc/e/e.js'])
 })
 
 var tmpCount = 0
@@ -873,9 +873,12 @@ function createUniqueTmp () {
   return dir
 }
 
-
-function getNativeDockerIgnoreResults (rules, paths) {
+// number of docker builds in parallel
+var dockerBuildSema = new Sema(PARALLEL_DOCKER_BUILDS, {capacity: cases.length})
+async function getNativeDockerIgnoreResults (rules, paths) {
+  await dockerBuildSema.acquire()
   var dir = createUniqueTmp()
+  var imageTag = cuid()
 
   var dockerignore = typeof rules === 'string'
     ? rules
@@ -909,20 +912,17 @@ function getNativeDockerIgnoreResults (rules, paths) {
     touch(dir, path)
   })
 
-  spawn('docker', ['build', '-f', DockerfileName, '-t', 'build-context', '.'], {
+  await getRawBody(spawn('docker', ['build', '-f', DockerfileName, '-t', imageTag, '.'], {
+    cwd: dir
+  }).stdout)
+
+  var runProc = spawn('docker', ['run', '--rm', imageTag], {
     cwd: dir
   })
 
-  var runProc = spawn('docker', ['run', '--rm', 'build-context'], {
-    cwd: dir
-  })
-
-  var out = runProc.stdout.toString()
-  .split('\n')
-  .map(s => removeLeading(s, './'))
-  .filter(s => Boolean(s) && !ignores.has(s))
-
-  return out
+  var out = (await getRawBody(runProc.stdout)).toString('utf8')
+  dockerBuildSema.release()
+  return out.split('\n').map(s => removeLeading(s, './')).filter(s => Boolean(s) && !ignores.has(s));
 }
 
 
