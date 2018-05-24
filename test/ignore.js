@@ -446,16 +446,16 @@ let cases = [
     }
   ],
 
-  // [
-  //   'A leading slash matches the beginning of the pathname',
-  //   [
-  //     '/*.c'
-  //   ],
-  //   {
-  //     'cat-file.c': 0,
-  //     'mozilla-sha1/sha1.c': 0
-  //   }
-  // ],
+  [
+    'A leading slash matches the beginning of the pathname',
+    [
+      '/*.c'
+    ],
+    {
+      'cat-file.c': 1,
+      'mozilla-sha1/sha1.c': 0
+    }
+  ],
 
   [
     'A leading "**" followed by a slash means match in all directories',
@@ -534,39 +534,34 @@ let cases = [
       'readme.md': 1,
       'rollup.config.js': 0,
       'yarn.lock': 0,
-      '.git': 1,
+      '.git/a': 1,
       'src/index.js': 0,
       'src/main.js': 0,
       'src/schemas/index.js': 0,
     }
   ],
 
-  // old test cases
-  // [
-  //   'should excape metacharacters of regular expressions', [
-  //     '*.js',
-  //     '!\\*.js',
-  //     '!a#b.js',
-  //     '!?.js',
-
-  //     // comments
-  //     '#abc',
-
-  //     '\\#abc'
-  //   ], {
-  //     '*.js': 0,
-  //     'abc.js': 1,
-  //     'a#b.js': 0,
-  //     'abc': 0,
-  //     '#abc': 1,
-  //     '?.js': 0
-  //   }
-  // ],
+  [
+    'https://github.com/zeit/now-cli/issues/1368',
+    'test/fixtures/.now-ignore-2',
+    {
+      '.dockerignore': 1,
+      '.flowconfig': 1,
+      '.gitignore': 1,
+      'Dockerfile': 1,
+      'now.json': 1,
+      'readme.md': 1,
+      '.git/a': 1,
+      'src/index.js': 0,
+      'src/main.js': 0,
+      'src/schemas/index.js': 0,
+    }
+  ],
 
   [
     'question mark should not break all things',
     'test/fixtures/.ignore-issue-2', {
-      '.project': 0,
+      '.project': 1,
       // remain
       'abc/.project': 0,
       '.a.sw': 0,
@@ -604,7 +599,7 @@ let cases = [
     'wildcard as filename', [
       '*.b'
     ], {
-      '.b': 0,
+      '.b': 1,
       'a.b': 1,
       'b/.b': 0,
       'b/a.b': 0,
@@ -616,8 +611,8 @@ let cases = [
     'slash at the beginning and come with a wildcard', [
       '/*.c'
     ], {
-      '.c': 0,
-      'c.c': 0,
+      '.c': 1,
+      'c.c': 1,
       'c/c.c': 0,
       'c/d': 0
     }
@@ -630,7 +625,6 @@ let cases = [
       '.d': 1,
       '.dd': 0,
       'd.d': 0,
-      'd': 0,
       'd/.d': 1,
       'd/d.d': 0,
       'd/e': 0
@@ -641,13 +635,13 @@ let cases = [
       '.e',
       '*/.e'
     ], {
-      '.e/': 1,
       '.ee': 0,
       'e.e': 0,
       '.e/e': 1,
+      '.e/f': 1,
       'e/.e': 1,
+      'f/.e': 1,
       'e/e.e': 0,
-      'e': 0,
       'e/f': 0
     }
   ],
@@ -707,20 +701,20 @@ real_cases.forEach(function(c) {
       expected = expected.map(mapper)
     }
 
+    console.log('Result: %O === Expected: %O', result.sort(), expected.sort())
     t.deepEqual(result.sort(), expected.sort())
   }
 
-  it('.filter():'.padEnd(18) + description, function(t) {
+  it('.filter():'.padEnd(26) + description, function(t) {
     let ig = ignore()
     let result = ig
       .addPattern(patterns)
       .filter(paths)
 
-    console.log('%O %O', result, expected)
     expect_result(t, result)
   })
 
-  it('.createFilter():'.padEnd(18) + description, function(t) {
+  it('.createFilter():'.padEnd(26) + description, function(t) {
     let result = paths.filter(
       ignore()
       .addPattern(patterns)
@@ -732,7 +726,7 @@ real_cases.forEach(function(c) {
     expect_result(t, result)
   })
 
-  it('.ignores(path):'.padEnd(18) + description, function (t) {
+  it('.ignores(path):'.padEnd(26) + description, function (t) {
     let ig = ignore().addPattern(patterns)
 
     Object.keys(paths_object).forEach(function (path) {
@@ -748,14 +742,13 @@ real_cases.forEach(function(c) {
   !skip_test_test
   // Tired to handle test cases for test cases for windows
   && !IS_WINDOWS
-  && it('is test correct:'.padEnd(18) + description, async function (t) {
+  && it('vs. docker:'.padEnd(26) + description, async function (t) {
     let result = (await getNativeDockerIgnoreResults(patterns, paths)).sort()
 
-    console.log('%O %O', result, expected)
     expect_result(t, result)
   })
 
-  SHOULD_TEST_WINDOWS && it('win32: .filter():'.padEnd(18) + description, function(t) {
+  SHOULD_TEST_WINDOWS && it('win32: .filter():'.padEnd(26) + description, function(t) {
     let win_paths = paths.map(make_win32)
 
     let ig = ignore()
@@ -767,7 +760,7 @@ real_cases.forEach(function(c) {
   })
 })
 
-it('.add(<Ignore>)'.padEnd(18), function(t) {
+it('.add(<Ignore>)'.padEnd(26), function(t) {
   let a = ignore().add(['.abc/*', '!.abc/d/'])
   let b = ignore().add(a).add('!.abc/e/')
 
@@ -786,7 +779,7 @@ function make_win32 (path) {
 }
 
 
-it('fixes babel class'.padEnd(18), function (t) {
+it('fixes babel class'.padEnd(26), function (t) {
   let constructor = ignore().constructor
 
   try {
@@ -800,7 +793,7 @@ it('fixes babel class'.padEnd(18), function (t) {
 })
 
 
-it('kaelzhang/node-ignore#32'.padEnd(18), function (t) {
+it('kaelzhang/node-ignore#32'.padEnd(26), function (t) {
   let KEY_IGNORE = typeof Symbol !== 'undefined'
     ? Symbol.for('docker-ignore')
     : 'docker-ignore';
@@ -889,8 +882,6 @@ async function getNativeDockerIgnoreResults (rules, paths) {
   })
   
   const out = (await getRawBody(runProc.stdout)).toString('utf8')
-
-  console.log(out)
 
   dockerBuildSema.release()
 
