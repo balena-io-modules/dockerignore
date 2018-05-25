@@ -5,5 +5,6 @@ WORKDIR /usr/src/app
 COPY . ./
 ARG CI=false
 ENV CI=$CI
+
 RUN yarn install
-RUN yarn test-ci
+CMD ["yarn", "test-ci"]

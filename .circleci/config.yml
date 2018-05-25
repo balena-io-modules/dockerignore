@@ -7,4 +7,5 @@ jobs:
       - add_ssh_keys:
           fingerprints:
             - "39:ec:b3:d2:40:a2:4d:1d:41:2c:c5:c2:08:ca:dc:f2"
-      - run: docker build . --build-arg CI=$CI
+      - run: docker build . --build-arg CI=$CI -t zeit/dockerignore:test
+      - run: docker run --rm -i -e CI=$CI -v /var/run/docker.sock:/var/run/docker.sock zeit/dockerignore:test
