@@ -706,34 +706,34 @@ real_cases.forEach(function(c) {
     t.deepEqual(result.sort(), expected.sort())
   }
 
-  it('.filter():'.padEnd(26) + description, function(t) {
-    let ig = ignore()
-    let result = ig
-      .addPattern(patterns)
-      .filter(paths)
+  // it('.filter():'.padEnd(26) + description, function(t) {
+  //   let ig = ignore()
+  //   let result = ig
+  //     .addPattern(patterns)
+  //     .filter(paths)
 
-    expect_result(t, result)
-  })
+  //   expect_result(t, result)
+  // })
 
-  it('.createFilter():'.padEnd(26) + description, function(t) {
-    let result = paths.filter(
-      ignore()
-      .addPattern(patterns)
-      .createFilter(),
-      // thisArg should be binded
-      null
-    )
+  // it('.createFilter():'.padEnd(26) + description, function(t) {
+  //   let result = paths.filter(
+  //     ignore()
+  //     .addPattern(patterns)
+  //     .createFilter(),
+  //     // thisArg should be binded
+  //     null
+  //   )
 
-    expect_result(t, result)
-  })
+  //   expect_result(t, result)
+  // })
 
-  it('.ignores(path):'.padEnd(26) + description, function (t) {
-    let ig = ignore().addPattern(patterns)
+  // it('.ignores(path):'.padEnd(26) + description, function (t) {
+  //   let ig = ignore().addPattern(patterns)
 
-    Object.keys(paths_object).forEach(function (path) {
-      t.is(ig.ignores(path), !!paths_object[path])
-    })
-  })
+  //   Object.keys(paths_object).forEach(function (path) {
+  //     t.is(ig.ignores(path), !!paths_object[path])
+  //   })
+  // })
 
 
   // TODO: Is this still applicable with dockerignore
@@ -761,62 +761,62 @@ real_cases.forEach(function(c) {
   })
 })
 
-it('.add(<Ignore>)'.padEnd(26), function(t) {
-  let a = ignore().add(['.abc/*', '!.abc/d/'])
-  let b = ignore().add(a).add('!.abc/e/')
+// it('.add(<Ignore>)'.padEnd(26), function(t) {
+//   let a = ignore().add(['.abc/*', '!.abc/d/'])
+//   let b = ignore().add(a).add('!.abc/e/')
 
-  let paths = [
-    '.abc/a.js',    // filtered out
-    '.abc/d/e.js',  // included
-    '.abc/e/e.js'   // included by b, filtered out by a
-  ]
+//   let paths = [
+//     '.abc/a.js',    // filtered out
+//     '.abc/d/e.js',  // included
+//     '.abc/e/e.js'   // included by b, filtered out by a
+//   ]
 
-  t.deepEqual(a.filter(paths), ['.abc/d/e.js'])
-  t.deepEqual(b.filter(paths), ['.abc/d/e.js', '.abc/e/e.js'])
-})
+//   t.deepEqual(a.filter(paths), ['.abc/d/e.js'])
+//   t.deepEqual(b.filter(paths), ['.abc/d/e.js', '.abc/e/e.js'])
+// })
 
 function make_win32 (path) {
   return path.replace(/\//g, '\\')
 }
 
 
-it('fixes babel class'.padEnd(26), function (t) {
-  let constructor = ignore().constructor
+// it('fixes babel class'.padEnd(26), function (t) {
+//   let constructor = ignore().constructor
 
-  try {
-    constructor()
-  } catch (e) {
-    t.pass()
-    return
-  }
+//   try {
+//     constructor()
+//   } catch (e) {
+//     t.pass()
+//     return
+//   }
 
-  t.fail()
-})
+//   t.fail()
+// })
 
 
-it('kaelzhang/node-ignore#32'.padEnd(26), function (t) {
-  let KEY_IGNORE = typeof Symbol !== 'undefined'
-    ? Symbol.for('docker-ignore')
-    : 'docker-ignore';
+// it('kaelzhang/node-ignore#32'.padEnd(26), function (t) {
+//   let KEY_IGNORE = typeof Symbol !== 'undefined'
+//     ? Symbol.for('docker-ignore')
+//     : 'docker-ignore';
 
-  let a = ignore().add(['.abc/*', '!.abc/d/'])
+//   let a = ignore().add(['.abc/*', '!.abc/d/'])
 
-  // aa is actually not an IgnoreBase instance
-  let aa = {}
-  aa._rules = a._rules.slice()
-  aa[KEY_IGNORE] = true
+//   // aa is actually not an IgnoreBase instance
+//   let aa = {}
+//   aa._rules = a._rules.slice()
+//   aa[KEY_IGNORE] = true
 
-  let b = ignore().add(aa).add('!.abc/e/')
+//   let b = ignore().add(aa).add('!.abc/e/')
 
-  let paths = [
-    '.abc/a.js',    // filtered out
-    '.abc/d/e.js',  // included
-    '.abc/e/e.js'   // included by b, filtered out by a
-  ]
+//   let paths = [
+//     '.abc/a.js',    // filtered out
+//     '.abc/d/e.js',  // included
+//     '.abc/e/e.js'   // included by b, filtered out by a
+//   ]
 
-  t.deepEqual(a.filter(paths), ['.abc/d/e.js'])
-  t.deepEqual(b.filter(paths), ['.abc/d/e.js', '.abc/e/e.js'])
-})
+//   t.deepEqual(a.filter(paths), ['.abc/d/e.js'])
+//   t.deepEqual(b.filter(paths), ['.abc/d/e.js', '.abc/e/e.js'])
+// })
 
 it('some tests take longer as docker images are built in the background ', function(t){
   t.pass()
