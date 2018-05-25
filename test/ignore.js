@@ -83,7 +83,8 @@ const cases = [
       'something.txt': 0,
       'somedir/something.txt': 0,
       'somedir/subdir/something.txt': 0,
-    }
+    },
+    // true
   ],
   [
     '.dockerignore documentation sample 2',
@@ -345,7 +346,7 @@ const cases = [
       'cde ': 0,
       'cde   ': 0
     },
-    false,
+    true,
     true
   ],
   [
@@ -467,7 +468,8 @@ const cases = [
       'foo/a': 1,
       'a/foo/a': 1,
       'a/b/c/foo/a': 1
-    }
+    },
+    // true
   ],
 
   [
@@ -523,7 +525,7 @@ const cases = [
   ],
 
   [
-    'test a dockerignore file that faile in now-cli',
+    'test a dockerignore file that failed in now-cli',
     'test/fixtures/.now-ignore',
     {
       '.dockerignore': 1,
@@ -702,11 +704,12 @@ real_cases.forEach(function(c) {
       expected = expected.map(mapper)
     }
 
-    console.log('Result: %O === Expected: %O', result.sort(), expected.sort())
+    console.log('%s result: %O === Expected: %O', description, result.sort(), expected.sort())
     t.deepEqual(result.sort(), expected.sort())
   }
 
   it('.filter():'.padEnd(26) + description, function(t) {
+    t.plan(1)
     let ig = ignore()
     let result = ig
       .addPattern(patterns)
@@ -716,6 +719,7 @@ real_cases.forEach(function(c) {
   })
 
   it('.createFilter():'.padEnd(26) + description, function(t) {
+    t.plan(1)
     let result = paths.filter(
       ignore()
       .addPattern(patterns)
@@ -728,6 +732,7 @@ real_cases.forEach(function(c) {
   })
 
   it('.ignores(path):'.padEnd(26) + description, function (t) {
+    t.plan(Object.keys(paths_object).length)
     let ig = ignore().addPattern(patterns)
 
     Object.keys(paths_object).forEach(function (path) {
@@ -744,12 +749,14 @@ real_cases.forEach(function(c) {
   // Tired to handle test cases for test cases for windows
   && !IS_WINDOWS
   && it('vs. docker:'.padEnd(26) + description, async function (t) {
+    t.plan(1)
     let result = (await getNativeDockerIgnoreResults(patterns, paths)).sort()
 
     expect_result(t, result)
   })
 
   SHOULD_TEST_WINDOWS && it('win32: .filter():'.padEnd(26) + description, function(t) {
+    t.plan(1)
     let win_paths = paths.map(make_win32)
 
     let ig = ignore()
@@ -762,6 +769,7 @@ real_cases.forEach(function(c) {
 })
 
 it('.add(<Ignore>)'.padEnd(26), function(t) {
+  t.plan(2)
   let a = ignore().add(['.abc/*', '!.abc/d/'])
   let b = ignore().add(a).add('!.abc/e/')
 
@@ -795,6 +803,7 @@ it('fixes babel class'.padEnd(26), function (t) {
 
 
 it('kaelzhang/node-ignore#32'.padEnd(26), function (t) {
+  t.plan(2)
   let KEY_IGNORE = typeof Symbol !== 'undefined'
     ? Symbol.for('docker-ignore')
     : 'docker-ignore';

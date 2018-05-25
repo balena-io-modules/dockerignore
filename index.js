@@ -13,16 +13,19 @@ function make_array (subject) {
     : [subject]
 }
 
-
 // const REGEX_BLANK_LINE = /^\s+$/
 // const REGEX_LEADING_EXCAPED_EXCLAMATION = /^\\\!/
 // const REGEX_LEADING_EXCAPED_HASH = /^\\#/
-// const REGEX_LEADING_SLASH = /^\//
+const REGEX_TRAILING_SLASH = /\/$/
 const SLASH = '/'
 const KEY_IGNORE = typeof Symbol !== 'undefined'
   ? Symbol.for('docker-ignore')
   : 'docker-ignore'
 
+// An implementation of Go's filepath.Clean
+function cleanPath (file) {
+  return path.normalize(file).replace(REGEX_TRAILING_SLASH, '')
+}
 
 class IgnoreBase {
   constructor () {
@@ -111,7 +114,7 @@ class IgnoreBase {
     }
 
     if (pattern.length > 0) {
-      pattern = path.normalize(pattern)
+      pattern = cleanPath(pattern)
 			pattern = pattern.split(path.sept).join(SLASH);
 			if (pattern.length > 1 && pattern[0] === SLASH) {
 				pattern = pattern.slice(1)
@@ -124,7 +127,6 @@ class IgnoreBase {
     }
 
     // const regex = make_regex(pattern, negative)
-
     return {
       origin,
       pattern,
@@ -169,8 +171,8 @@ class IgnoreBase {
   // @returns {Boolean} true if a file is NOT ignored
   _test (file) {
     file = file.split(SLASH).join(path.sep)
-    const parentPath = path.normalize(path.dirname(file))
-    let parentPathDirs = parentPath.split(path.sep)
+    const parentPath = cleanPath(path.dirname(file))
+    const parentPathDirs = parentPath.split(path.sep)
     
     let matched = false;
 
@@ -179,7 +181,9 @@ class IgnoreBase {
   
       if (!match && parentPath !== ".") {
         // Check to see if the pattern matches one of our parent dirs.
+        console.log(parentPathDirs, rule.dirs)
         if (rule.dirs.length <= parentPathDirs.length) {
+          console.log('Checking to see if the pattern matches one of our parent dirs.')
           match = this._match(parentPathDirs.slice(0, rule.dirs.length).join(path.sep), rule)
         }
       }
@@ -188,14 +192,86 @@ class IgnoreBase {
         matched = !rule.negative
       }
     })
+
+    console.log('matched? %O', matched)
   
     return !matched
   }
 
   // @returns {Boolean} true if a file is matched by a rule
   _match(file, rule) {
-    // TODO: use regex?
-    return minimatch(file, rule.pattern)
+    const r = this._compile(rule).regexp.test(file)
+    console.log('%O\t%O\t%O', file, rule.pattern, r)
+    return r
+  }
+
+  _compile(rule) {
+    if(rule.regexp) {
+      return rule;
+    }
+
+    let regStr = '^';
+
+    // Go through the pattern and convert it to a regexp.
+    let escapedSlash = path.sep === '\\' ? '\\\\' : path.sep
+    for(let i = 0; i < rule.pattern.length; i++) {
+      const ch = rule.pattern[i];
+  
+      if (ch === '*') {
+        if (rule.pattern[i+1] === '*') {
+          // is some flavor of "**"
+          i++;
+  
+          // Treat **/ as ** so eat the "/"
+          if (rule.pattern[i+1] === escapedSlash) {
+            i++;
+          }
+  
+          if (rule.pattern[i+1] === undefined) {
+            // is "**EOF" - to align with .gitignore just accept all
+            regStr += ".*"
+          } else {
+            // is "**"
+            // Note that this allows for any # of /'s (even 0) because
+            // the .* will eat everything, even /'s
+            regStr += `(.*${escapedSlash})?`
+          }
+        } else {
+          // is "*" so map it to anything but "/"
+          regStr += `[^${escapedSlash}]*`;
+        }
+      } else if (ch === '?') {
+        // "?" is any char except "/"
+        regStr += `[^${escapedSlash}]`
+      } else if (ch === '.' || ch === '$') {
+        // Escape some regexp special chars that have no meaning
+        // in golang's filepath.Match
+        regStr += `\\${ch}`
+      } else if (ch === '\\') {
+        // escape next char. Note that a trailing \ in the pattern
+        // will be left alone (but need to escape it)
+        if (path.sep === '\\') {
+          // On windows map "\" to "\\", meaning an escaped backslash,
+          // and then just continue because filepath.Match on
+          // Windows doesn't allow escaping at all
+          regStr += escSL
+          continue
+        }
+        if (rule.pattern[i+1] !== undefined) {
+          regStr += '\\' + rule.pattern[i+1]
+          i++
+        } else {
+          regStr += '\\'
+        }
+      } else {
+        regStr += ch
+      }
+    }
+  
+    regStr += "$"
+  
+    rule.regexp = new RegExp(regStr, 'i');
+    return rule
   }
 }
 
