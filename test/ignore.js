@@ -25,25 +25,6 @@ const CI = !!process.env.CI;
 const PARALLEL_DOCKER_BUILDS = 6
 
 const cases = [
-  // [
-  //   'spaces are accepted in patterns. "\\ " doesn\'t mean anything special',
-  //   [
-  //     'abc d',
-  //     'abc\ e',
-  //     'abc\\ f',
-  //     'abc/a b c'
-  //   ],
-  //   {
-  //     'abc d': 1,
-  //     'abc\ e': 1,
-  //     'abc/a b c': 1,
-  //     'abc\\ f': 0,
-  //     'abc': 0,
-  //     'abc/abc d': 0,
-  //     'abc/abc e': 0,
-  //     'abc/abc f': 0
-  //   }
-  // ],
   [
     'special cases: invalid empty paths, just ignore',
     [
@@ -326,11 +307,12 @@ const cases = [
       '#abc': 1
     }
   ],
-  // TODO: Fix the test case. this test case is currently being skipped
-  // because we need verify what dockerignore actually does
-  // and the "vs. docker" test won't work because listing files using find .
-  // on the docker image and getting the list of files trims whitespace.
-  // After manually verifying this test case, we'll bring it back
+  // TODO: Fix these tests case
+  // These test cases are currently being skipped because we need verify
+  // what dockerignore actually does and the "vs. docker" test won't work
+  // because listing files using find . on the docker image and getting
+  // the list of files trims whitespace.
+  // After manually verifying these test cases, we'll bring them back
   // [
   //   'Trailing spaces are ignored unless they are quoted with backslash ("\\")',
   //   [
@@ -353,6 +335,38 @@ const cases = [
   //   },
   //   true,
   //   true
+  // ],
+  // [
+  //   'spaces are accepted in patterns. "\\ " doesn\'t mean anything special',
+  //   [
+  //     'abc d',
+  //     'abc\ e',
+  //     'abc\\ f',
+  //     'abc/a b c'
+  //   ],
+  //   {
+  //     'abc d': 1,
+  //     'abc\ e': 1,
+  //     'abc/a b c': 1,
+  //     'abc\\ f': 0,
+  //     'abc': 0,
+  //     'abc/abc d': 0,
+  //     'abc/abc e': 0,
+  //     'abc/abc f': 0
+  //   }
+  // ],
+  // [
+  //   'Put a backslash ("\\") in front of the first "!" for patterns that begin with a literal "!"',
+  //   [
+  //     '\\!abc',
+  //     '\\!important!.txt'
+  //   ],
+  //   {
+  //     '!abc': 1,
+  //     'abc': 0,
+  //     'b/!important!.txt': 0,
+  //     '!important!.txt': 1
+  //   }
   // ],
   [
     'An optional prefix "!" which negates the pattern; any matching file excluded by a previous pattern will become included again',
@@ -388,19 +402,6 @@ const cases = [
       'bcd/abc/a.js': 0
     }
   ],
-  // [
-  //   'Put a backslash ("\\") in front of the first "!" for patterns that begin with a literal "!"',
-  //   [
-  //     '\\!abc',
-  //     '\\!important!.txt'
-  //   ],
-  //   {
-  //     '!abc': 1,
-  //     'abc': 0,
-  //     'b/!important!.txt': 0,
-  //     '!important!.txt': 1
-  //   }
-  // ],
 
   [
     'If the pattern ends with a slash, the slash is basically ignored/dropped',
