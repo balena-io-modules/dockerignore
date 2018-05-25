@@ -4,4 +4,4 @@ RUN apk --update --no-cache add bash make docker
 WORKDIR /usr/src/app
 COPY . ./
 RUN yarn install
-RUN yarn test
+RUN yarn test-ci

@@ -10,7 +10,8 @@
   "scripts": {
     "prepublish": "npm run build",
     "build": "babel -o ignore.js index.js",
-    "test": "npm run build && nyc ava ./test/ignore.js && codecov",
+    "test": "npm run build && ava ./test/ignore.js",
+    "test-ci": "npm run build && nyc ava ./test/ignore.js --verbose && codecov",
     "test-no-cov": "npm run build && ava ./test/ignore.js",
     "cov-report": "nyc report"
   },

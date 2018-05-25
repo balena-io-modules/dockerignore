@@ -1,29 +1,30 @@
 'use strict'
 
 // For old node.js versions, we use es5
-let fs = require('fs')
-let ignore = require('../')
-let expect = require('chai').expect
-let spawn = require('child_process').spawn
-let tmp = require('tmp').dirSync
-let mkdirp = require('mkdirp').sync
-let path = require('path')
-let rm = require('rimraf').sync
-let preSuf = require('pre-suf')
-let getRawBody = require('raw-body')
-let it = require('ava')
-let Sema = require('async-sema')
-let cuid = require('cuid')
+const fs = require('fs')
+const ignore = require('../')
+const expect = require('chai').expect
+const spawn = require('child_process').spawn
+const tmp = require('tmp').dirSync
+const mkdirp = require('mkdirp').sync
+const path = require('path')
+const rm = require('rimraf').sync
+const preSuf = require('pre-suf')
+const getRawBody = require('raw-body')
+const it = require('ava')
+const Sema = require('async-sema')
+const cuid = require('cuid')
 
-let removeEnding = preSuf.removeEnding
-let removeLeading = preSuf.removeLeading
+const removeEnding = preSuf.removeEnding
+const removeLeading = preSuf.removeLeading
 
-let IS_WINDOWS = process.platform === 'win32'
-let SHOULD_TEST_WINDOWS = !process.env.IGNORE_TEST_WIN32
+const IS_WINDOWS = process.platform === 'win32'
+const SHOULD_TEST_WINDOWS = !process.env.IGNORE_TEST_WIN32
   && IS_WINDOWS
-let PARALLEL_DOCKER_BUILDS = 6
+const CI = !!process.env.CI;
+const PARALLEL_DOCKER_BUILDS = 6
 
-let cases = [
+const cases = [
   // [
   //   'spaces are accepted in patterns. "\\ " doesn\'t mean anything special',
   //   [
@@ -680,7 +681,7 @@ real_cases.forEach(function(c) {
   const description = c[0]
   let patterns = c[1]
   const paths_object = c[2]
-  const skip_test_test = c[4]
+  const skip_test_test = !CI || c[4]
 
   if (typeof patterns === 'string') {
     patterns = readPatterns(patterns)
