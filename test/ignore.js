@@ -719,7 +719,6 @@ real_cases.forEach(function(c) {
       expected = expected.map(mapper)
     }
 
-    console.log('%s result: %O === Expected: %O', description, result.sort(), expected.sort())
     t.deepEqual(result.sort(), expected.sort())
   }
 

@@ -181,20 +181,15 @@ class IgnoreBase {
   
       if (!match && parentPath !== ".") {
         // Check to see if the pattern matches one of our parent dirs.
-        console.log(parentPathDirs, rule.dirs)
         if (rule.dirs.includes('**')) {
-          console.log('Checking to see if the pattern matches any possible parent dir.')
           // Ah shucks! We have to test every possible parent path that has 
           // a number of dirs _n_ where 
           // `rule.dirs.filter(doubleStar).length <= _n_ <= parentPathDirs.length`
           // since the ** can imply any number of directories including 0
-          console.log(rule.dirs.filter(x => x !== '**').length, parentPathDirs.length)
           for (let i = rule.dirs.filter(x => x !== '**').length; i <= parentPathDirs.length; i++) {
-            console.log(i)
             match = match || this._match(parentPathDirs.slice(0, i).join(path.sep), rule)
           }
         } else if (rule.dirs.length <= parentPathDirs.length) {
-          console.log('Checking to see if the pattern matches a parent dir.')
           // We can just test the parent path with the correct number of dirs
           // in the rule since, for a match to happen, rule.dirs.length HAS TO BE
           // EQUAL to the number of first in the parent path :D
@@ -206,8 +201,6 @@ class IgnoreBase {
         matched = !rule.negative
       }
     })
-
-    console.log('matched? %O', matched)
   
     return !matched
   }
@@ -215,7 +208,6 @@ class IgnoreBase {
   // @returns {Boolean} true if a file is matched by a rule
   _match(file, rule) {
     const r = this._compile(rule).regexp.test(file)
-    console.log('%O\t%O\t%O', file, rule.pattern, r)
     return r
   }
 
