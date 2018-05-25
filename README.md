@@ -4,32 +4,31 @@
     <th>OS X</th>
     <th>Windows</th>
     <th>Coverage</th>
-    <th>Downloads</th>
   </tr>
 </thead><tbody><tr>
   <td colspan="2" align="center">
-    <a href="https://travis-ci.org/kaelzhang/node-ignore">
+    <a href="https://circleci.com/gh/zeit/dockerignore">
     <img
-      src="https://travis-ci.org/kaelzhang/node-ignore.svg?branch=master"
+      src="https://circleci.com/gh/zeit/dockerignore.svg?style=svg"
+      alt="Build Status" /></a>
+  </td>
+  <td colspan="2" align="center">
+    <a href="https://circleci.com/gh/zeit/dockerignore">
+    <img
+      src="https://circleci.com/gh/zeit/dockerignore.svg?style=svg"
       alt="Build Status" /></a>
   </td>
   <td align="center">
-    <a href="https://ci.appveyor.com/project/kaelzhang/node-ignore">
+    <a href="https://ci.appveyor.com/project/zeit/dockerignore">
     <img
-      src="https://ci.appveyor.com/api/projects/status/github/kaelzhang/node-ignore?branch=master&svg=true"
+      src="https://ci.appveyor.com/api/projects/status/github/zeit/dockerignore?branch=master&svg=true"
       alt="Windows Build Status" /></a>
   </td>
   <td align="center">
-    <a href="https://codecov.io/gh/kaelzhang/node-ignore">
+    <a href="https://codecov.io/gh/zeit/dockerignore">
     <img
-      src="https://codecov.io/gh/kaelzhang/node-ignore/branch/master/graph/badge.svg"
+      src="https://codecov.io/gh/zeit/dockerignore/branch/master/graph/badge.svg"
       alt="Coverage Status" /></a>
-  </td>
-  <td align="center">
-    <a href="https://www.npmjs.org/package/ignore">
-    <img
-      src="http://img.shields.io/npm/dm/ignore.svg"
-      alt="npm module downloads per month" /></a>
   </td>
 </tr></tbody></table>
 
