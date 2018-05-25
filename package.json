@@ -10,13 +10,13 @@
   "scripts": {
     "prepublish": "npm run build",
     "build": "babel -o ignore.js index.js",
-    "test": "npm run build && nyc ava ./test/ignore.js --fail-fast && codecov",
+    "test": "npm run build && nyc ava ./test/ignore.js && codecov",
     "test-no-cov": "npm run build && ava ./test/ignore.js",
     "cov-report": "nyc report"
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:zeit/docker-ignore.git"
+    "url": "git@github.com:zeit/dockerignore.git"
   },
   "keywords": [
     "ignore",

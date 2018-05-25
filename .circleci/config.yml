@@ -1,0 +1,10 @@
+version: 2
+jobs:
+  build:
+    machine: true
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "39:ec:b3:d2:40:a2:4d:1d:41:2c:c5:c2:08:ca:dc:f2"
+      - run: docker build .
