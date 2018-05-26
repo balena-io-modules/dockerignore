@@ -976,7 +976,7 @@ async function getNativeDockerIgnoreResults (rules, paths) {
     ? rules
     : rules.join('\n')
 
-  const DockerfileName = 'Dockerfile.build-context'
+  const DockerfileName = 'Dockerfile'
   const Dockerfile = `
     FROM busybox
     COPY . /build-context
