@@ -984,9 +984,6 @@ async function getNativeDockerIgnoreResults (rules, paths) {
     CMD find . -type f
   `
 
-  touch(dir, '.dockerignore', dockerignore)
-  touch(dir, DockerfileName, Dockerfile)
-
   paths.forEach(function (path, i) {
     if (path === '.dockerignore') {
       return
@@ -1002,6 +999,9 @@ async function getNativeDockerIgnoreResults (rules, paths) {
 
     touch(dir, path)
   })
+
+  touch(dir, '.dockerignore', dockerignore)
+  touch(dir, DockerfileName, Dockerfile)
 
   await getRawBody(spawn('docker', ['build', '-f', DockerfileName, '-t', imageTag, '.'], {
     cwd: dir
