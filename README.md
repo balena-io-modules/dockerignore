@@ -32,31 +32,26 @@
   </td>
 </tr></tbody></table>
 
-# ignore
+# dockerignore
 
-`ignore` is a manager, filter and parser which implemented in pure JavaScript according to the .gitignore [spec](http://git-scm.com/docs/gitignore).
+`dockerignore` is a manager, filter and parser which is implemented in pure JavaScript according to the .dockerignore [spec](https://docs.docker.com/engine/reference/builder/#dockerignore-file) and is used in production in [now-cli](https://github.com/zeit/now-cli/)
 
-Pay attention that [`minimatch`](https://www.npmjs.org/package/minimatch) does not work in the gitignore way. To filter filenames according to .gitignore file, I recommend this module.
+The `.dockerignore` spec has a few subtle differences from `.gitignore`. IF you'd like a great `.gitignore` file parser, check out [node-ignore](https://github.com/kaelzhang/node-ignore). This package is a fork of `node-ignore` and follows the exact same API.
 
 ##### Tested on
 
-- Linux + Node: `0.8` - `7.x`
-- Windows + Node: `0.10` - `7.x`, node < `0.10` is not tested due to the lack of support of appveyor.
-
-Actually, `ignore` does not rely on any versions of node specially.
+- Linux + Node: `9.0` (but we use `babel` and it *should* work on older version of Node. Accepting PRs if that isn't the case)
+- Windows + Node testing *coming soon*
 
 ## Table Of Main Contents
 
 - [Usage](#usage)
-- [Guide for 2.x -> 3.x](#upgrade-2x---3x)
 - [Contributing](#contributing)
-- Related Packages
-  - [`glob-gitignore`](https://www.npmjs.com/package/glob-gitignore) matches files using patterns and filters them according to gitignore rules.
 
 ## Usage
 
 ```js
-const ignore = require('ignore')
+const ignore = require('docker-ignore')
 const ig = ignore().add(['.abc/*', '!.abc/d/'])
 ```
 
@@ -86,22 +81,14 @@ ig.filter(['.abc\\a.js', '.abc\\d\\e.js'])
 // ['.abc\\d\\e.js']
 ```
 
-## Why another ignore?
+## features
 
-- `ignore` is a standalone module, and is much simpler so that it could easy work with other programs, unlike [isaacs](https://npmjs.org/~isaacs)'s [fstream-ignore](https://npmjs.org/package/fstream-ignore) which must work with the modules of the fstream family.
+- Exactly according to the [dockerignore spec](https://docs.docker.com/engine/reference/builder/#dockerignore-file) 
+- All test cases are verified on Circle CI by doing an an actual `docker build` with the test case files and `.dockerignore` rules to ensure our tests match what happens with the real [docker](https://www.docker.com/) CLI
 
-- `ignore` only contains utility methods to filter paths according to the specified ignore rules, so
-  - `ignore` never try to find out ignore rules by traversing directories or fetching from git configurations.
-  - `ignore` don't cares about sub-modules of git projects.
+## dockerignore vs ignore
 
-- Exactly according to [gitignore man page](http://git-scm.com/docs/gitignore), fixes some known matching issues of fstream-ignore, such as:
-  - '`/*.js`' should only match '`a.js`', but not '`abc/a.js`'.
-  - '`**/foo`' should match '`foo`' anywhere.
-  - Prevent re-including a file if a parent directory of that file is excluded.
-  - Handle trailing whitespaces:
-    - `'a '`(one space) should not match `'a  '`(two spaces).
-    - `'a \ '` matches `'a  '`
-  - All test cases are verified with the result of `git check-ignore`.
+Read our [blog post](https://zeit.co/blog) about the differences between `.dockerignore` and `.ignore` and why we built this package.
 
 ## Methods
 
@@ -132,26 +119,7 @@ ignore()
 
 `pattern` could also be an `ignore` instance, so that we could easily inherit the rules of another `Ignore` instance.
 
-### <strike>.addIgnoreFile(path)</strike>
-
-REMOVED in `3.x` for now.
-
-To upgrade `ignore@2.x` up to `3.x`, use
-
-```js
-const fs = require('fs')
-
-if (fs.existsSync(filename)) {
-  ignore().add(fs.readFileSync(filename).toString())
-}
-```
-
-instead.
-
-
 ### .ignores(pathname)
-
-> new in 3.2.0
 
 Returns `Boolean` whether `pathname` should be ignored.
 
@@ -165,97 +133,23 @@ Filters the given array of pathnames, and returns the filtered array.
 
 - **paths** `Array.<path>` The array of `pathname`s to be filtered.
 
-**NOTICE** that:
-
-- `pathname` should be a string that have been `path.join()`ed, or the return value of `path.relative()` to the current directory.
-
-```js
-// WRONG
-ig.ignores('./abc')
-
-// WRONG, for it will never happen.
-// If the gitignore rule locates at the root directory,
-// `'/abc'` should be changed to `'abc'`.
-// ```
-// path.relative('/', '/abc')  -> 'abc'
-// ```
-ig.ignores('/abc')
-
-// Right
-ig.ignores('abc')
-
-// Right
-ig.ignores(path.join('./abc'))  // path.join('./abc') -> 'abc'
-```
-
-- In other words, each `pathname` here should be a relative path to the directory of the git ignore rules.
-
-Suppose the dir structure is:
-
-```
-/path/to/your/repo
-    |-- a
-    |   |-- a.js
-    |
-    |-- .b
-    |
-    |-- .c
-         |-- .DS_store
-```
-
-Then the `paths` might be like this:
-
-```js
-[
-  'a/a.js'
-  '.b',
-  '.c/.DS_store'
-]
-```
-
-Usually, you could use [`glob`](http://npmjs.org/package/glob) with `option.mark = true` to fetch the structure of the current directory:
-
-```js
-const glob = require('glob')
-
-glob('**', {
-  // Adds a / character to directory matches.
-  mark: true
-}, (err, files) => {
-  if (err) {
-    return console.error(err)
-  }
-
-  let filtered = ignore().add(patterns).filter(files)
-  console.log(filtered)
-})
-```
-
 ### .createFilter()
 
 Creates a filter function which could filter an array of paths with `Array.prototype.filter`.
 
 Returns `function(path)` the filter function.
 
-****
-
-## Upgrade 2.x -> 3.x
-
-- All `options` of 2.x are unnecessary and removed, so just remove them.
-- `ignore()` instance is no longer an [`EventEmitter`](nodejs.org/api/events.html), and all events are unnecessary and removed.
-- `.addIgnoreFile()` is removed, see the [.addIgnoreFile](#addignorefilepath) section for details.
-
-****
-
 ## Contributing
 
-The code of `node-ignore` is based on es6 and babel, but babel and its preset is not included in the `dependencies` field of package.json, so that the installation process of test cases will not fail in older versions of node.
+Contributions are always welcome and we are fully [commited to Open Source](https://zeit.co/blog/oss).
 
-So use `bash install.sh` to install dependencies and `bash test.sh` to run test cases in your local machine.
+1. Fork this repository to your own GitHub account and then clone it to your local device.
+2. Install the dependencies: `yarn` or `npm install`
+3. Add a test case (if applicable) and ensure it currently fails
+4. Add code to pass the test
+5. Make a pull request (additional tests will run on CI to ensure that your test case agrees with an actual `docker build`)
 
-#### Collaborators
-
-- [SamyPesse](https://github.com/SamyPesse) *Samy Pessé*
-- [azproduction](https://github.com/azproduction) *Mikhail Davydov*
-- [TrySound](https://github.com/TrySound) *Bogdan Chadkin*
-- [JanMattner](https://github.com/JanMattner) *Jan Mattner*
+## Authors
+  - Pranay Prakash ([@pranaygp](https://twitter.com/pranaygp)) – [ZEIT](https://zeit.co)
+  
+  Most of the initial work on this project was done by Kael Zhang ([@kaelzhang](https://github.com/kaelzhang)) and the [collaborators](https://github.com/kaelzhang/node-ignore#collaborators) on [node-ignore](https://github.com/kaelzhang/node-ignore)
