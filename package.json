@@ -23,7 +23,6 @@
     "ignore",
     ".dockerignore",
     "dockerignore",
-    "npmignore",
     "rules",
     "manager",
     "filter",
@@ -52,8 +51,5 @@
     "raw-body": "^2.3.3",
     "rimraf": "^2.6.2",
     "tmp": "0.0.33"
-  },
-  "dependencies": {
-    "minimatch": "^3.0.4"
   }
 }
