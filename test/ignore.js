@@ -1019,7 +1019,8 @@ async function getNativeDockerIgnoreResults (rules, paths) {
     cwd: dir
   }).stdout)
 
-  return out.split('\n').filter(Boolean);
+  // Remove empty lines and the './' precceding each file
+  return out.split('\n').filter(Boolean).map(x => x.slice(2));
 }
 
 
