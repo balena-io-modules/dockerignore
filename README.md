@@ -50,10 +50,12 @@ The `.dockerignore` spec has a few subtle differences from `.gitignore`. IF you'
 - Linux + Node: `9.0` (but we use `babel` and it *should* work on older version of Node. Accepting PRs if that isn't the case)
 - Windows + Node testing *coming soon*
 
-## Table Of Main Contents
+## Install
 
-- [Usage](#usage)
-- [Contributing](#contributing)
+```bash
+yarn add docker-ignore // or npm install --save docker-ignore
+```
+
 
 ## Usage
 
@@ -96,7 +98,7 @@ ig.filter(['.abc\\a.js', '.abc\\d\\e.js'])
 
 ## dockerignore vs ignore
 
-Read our [blog post](https://zeit.co/blog) about the differences between `.dockerignore` and `.ignore` and why we built this package.
+Read our [blog post](https://zeit.co/blog) about the differences between `dockerignore` and `ignore` and why we built this package.
 
 ## Methods
 
