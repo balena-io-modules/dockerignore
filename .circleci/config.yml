@@ -10,9 +10,12 @@ jobs:
       # Get node and yarn
       - run: sudo apt-get update
       - run: curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+      - run: curl -sL https://deb.nodesource.com/setup_9.x | sudo -E bash -
       - run: echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-      - run: sudo apt-get update && sudo apt-get install yarn
+      - run: sudo apt-get install -y nodejs
       - run: ln -s $(which nodejs) usr/local/bin/node
+      - run: sudo apt-get update && sudo apt-get install yarn
+      - run: sudo apt-get install -y build-essential
       # Download and cache dependencies
       - restore_cache:
           keys:
