@@ -819,8 +819,8 @@ it('fixes babel class'.padEnd(26), function (t) {
 it('kaelzhang/node-ignore#32'.padEnd(26), function (t) {
   t.plan(2)
   let KEY_IGNORE = typeof Symbol !== 'undefined'
-    ? Symbol.for('docker-ignore')
-    : 'docker-ignore';
+    ? Symbol.for('dockerignore')
+    : 'dockerignore';
 
   let a = ignore().add(['.abc/*', '!.abc/d/'])
 

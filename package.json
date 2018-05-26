@@ -1,7 +1,7 @@
 {
-  "name": "docker-ignore",
+  "name": "dockerignore",
   "version": "1.0.0",
-  "description": "docker-ignore is a manager and filter for .dockerignore rules and is a fork of ignore.",
+  "description": "dockerignore is a manager and filter for .dockerignore rules and is a fork of ignore.",
   "main": "./ignore.js",
   "files": [
     "ignore.js",
@@ -35,7 +35,7 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/zeit/docker-ignore/issues"
+    "url": "https://github.com/zeit/dockerignore/issues"
   },
   "devDependencies": {
     "async-sema": "^2.1.0",

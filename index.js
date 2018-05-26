@@ -14,8 +14,8 @@ function make_array (subject) {
 const REGEX_TRAILING_SLASH = /\/$/
 const SLASH = '/'
 const KEY_IGNORE = typeof Symbol !== 'undefined'
-  ? Symbol.for('docker-ignore')
-  : 'docker-ignore'
+  ? Symbol.for('dockerignore')
+  : 'dockerignore'
 
 // An implementation of Go's filepath.Clean
 function cleanPath (file) {
