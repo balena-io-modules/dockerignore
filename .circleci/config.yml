@@ -8,14 +8,23 @@ jobs:
     steps:
       - checkout
       # Get node and yarn
-      - run: curl -sL https://deb.nodesource.com/setup_9.x | sudo -E bash -
-      - run: sudo apt-get install -y nodejs
-      - run: sudo rm /usr/bin/node
-      - run: ln -s $(which nodejs) /usr/bin/node
-      - run: curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-      - run: echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-      - run: sudo apt-get update && sudo apt-get install yarn
-      - run: sudo apt-get install -y build-essential
+      - run:
+        name: Install node@9.x
+        command: |
+          set +e             
+          touch $BASH_ENV  
+          curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.5/install.sh | bash
+          echo 'export NVM_DIR="$HOME/.nvm"' >> $BASH_ENV
+          echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> $BASH_ENV
+          echo 'nvm install v9' >> $BASH_ENV
+          echo 'nvm alias default v9' >> $BASH_ENV
+          sudo apt-get install -y build-essential
+      - run:
+        name: Install yarn
+        command: |
+          curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+          echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+          sudo apt-get update && sudo apt-get install ----no-install-recommends yarn
       # Download and cache dependencies
       - restore_cache:
           keys:
