@@ -53,14 +53,14 @@ The `.dockerignore` spec has a few subtle differences from `.gitignore`. IF you'
 ## Install
 
 ```bash
-yarn add docker-ignore // or npm install --save docker-ignore
+yarn add @zeit/dockerignore // or npm install --save @zeit/dockerignore
 ```
 
 
 ## Usage
 
 ```js
-const ignore = require('docker-ignore')
+const ignore = require('@zeit/dockerignore')
 const ig = ignore().add(['.abc/*', '!.abc/d/'])
 ```
 

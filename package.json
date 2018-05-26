@@ -1,6 +1,6 @@
 {
-  "name": "docker-ignore",
-  "version": "1.0.0",
+  "name": "@zeit/dockerignore",
+  "version": "0.0.1",
   "description": "dockerignore is a manager and filter for .dockerignore rules and is a fork of ignore.",
   "main": "./ignore.js",
   "files": [
@@ -8,7 +8,7 @@
     "index.d.ts"
   ],
   "scripts": {
-    "prepublish": "npm run build",
+    "prepublishOnly:": "npm run build",
     "build": "babel -o ignore.js index.js",
     "test": "npm run build && ava ./test/ignore.js",
     "test-ci": "npm run build && nyc ava ./test/ignore.js --verbose",
