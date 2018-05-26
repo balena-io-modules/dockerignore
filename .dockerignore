@@ -1,5 +1,6 @@
 *
 !test
+!.git
 !.babelrc
 !index.js
 !index.d.ts
