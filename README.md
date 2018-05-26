@@ -12,12 +12,6 @@
       src="https://circleci.com/gh/zeit/dockerignore.svg?style=svg"
       alt="Build Status" /></a>
   </td>
-  <td colspan="2" align="center">
-    <a href="https://circleci.com/gh/zeit/dockerignore">
-    <img
-      src="https://circleci.com/gh/zeit/dockerignore.svg?style=svg"
-      alt="Build Status" /></a>
-  </td>
   <td align="center">
     <a href="https://ci.appveyor.com/project/zeit/dockerignore">
     <img
