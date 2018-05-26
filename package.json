@@ -1,5 +1,5 @@
 {
-  "name": "dockerignore",
+  "name": "docker-ignore",
   "version": "1.0.0",
   "description": "dockerignore is a manager and filter for .dockerignore rules and is a fork of ignore.",
   "main": "./ignore.js",

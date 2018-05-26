@@ -30,7 +30,20 @@
 
 `dockerignore` is a manager, filter and parser which is implemented in pure JavaScript according to the .dockerignore [spec](https://docs.docker.com/engine/reference/builder/#dockerignore-file) and is used in production in [now-cli](https://github.com/zeit/now-cli/)
 
-The `.dockerignore` spec has a few subtle differences from `.gitignore`. IF you'd like a great `.gitignore` file parser, check out [node-ignore](https://github.com/kaelzhang/node-ignore). This package is a fork of `node-ignore` and follows the exact same API.
+The `.dockerignore` spec has a few subtle differences from `.gitignore`. IF you'd like a great `.gitignore` file parser, check out [ignore](https://github.com/kaelzhang/node-ignore). This package is a fork of `ignore` and follows the exact same API.
+
+#### What's different from `ignore`?
+- There are many direct differences between the `.gitignore` and `.dockerignore` specifications
+  - `*` in `.gitignore` matches everything, wheras in `.dockerignore` it only matches things in the current directory (like glob). This difference is important when whitelisting after a `*` rule
+  - `abc` in `.gitignore` matches all `abc` files and directories, however deeply nested, however `.dockerignore` specifically matches on `./abc` but does not match nested files/directories like `./somedir/abc`
+  - With `.gitignore`, when a parent directory is ignored, subdirectories cannot be re-added (using `!`) since `git` simply avoids walking through the subtree as an optimization, wheras with `.dockerignore` a subdirectory can be re-added even if a parent directory has been ignored
+  - For a complete list of differences, check out the [.gitignore spec](https://git-scm.com/docs/gitignore) and the [.dockerignore spec](https://docs.docker.com/engine/reference/builder/#dockerignore-file)
+- Under the hood, we rewrote the entire matching logic to be much simpler
+  - instead of complex Regex rule to replace patterns with regex, we scan through patterns
+  - this is also modeled directly from [docker's implementation](https://github.com/docker/docker-ce/blob/7d44629ea2c739e7803acc77b84ee8dd2a8c4746/components/engine/pkg/fileutils/fileutils.go)
+
+#### What's the same as `ignore`?
+- The entire API (Infate we even reuse the same `index.d.ts` file for TypeScript definitions)
 
 ##### Tested on
 
