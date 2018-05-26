@@ -1,11 +1,23 @@
 version: 2
 jobs:
   build:
-    machine: true
+    docker: 
+      - image: circleci/node:latest
+    working_directory: ~/repo
     steps:
       - checkout
-      - add_ssh_keys:
-          fingerprints:
-            - "39:ec:b3:d2:40:a2:4d:1d:41:2c:c5:c2:08:ca:dc:f2"
-      - run: docker build . --build-arg CI=$CI -t zeit/dockerignore:test
-      - run: docker run --rm -i -e CI=$CI -v /var/run/docker.sock:/var/run/docker.sock zeit/dockerignore:test
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "yarn.lock" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+      
+      - run: yarn
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "yarn.lock" }}
+
+      - run: yarn install
+      - run: yarn test-ci
