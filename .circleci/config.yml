@@ -9,7 +9,6 @@ jobs:
       - checkout
       - run: docker build . -t zeit/dockerignore:test
       - run: mkdir codecov-reports
-      - run: docker run -v ":/shared" ...
       - run: |
           docker run --rm -i \
           -e CI=$CI \
