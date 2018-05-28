@@ -8,11 +8,10 @@ jobs:
     steps:
       - checkout
       - run: docker build . -t zeit/dockerignore:test
-      - run: mkdir codecov-reports
       - run: |
           docker run --rm -i \
+          $(curl -s https://codecov.io/env | bash) \
           -e CI=$CI \
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v $PWD/codecov-reports:/usr/src/app/codecov-reports \
           zeit/dockerignore:test
-      - run: bash <(curl -s https://codecov.io/bash)
