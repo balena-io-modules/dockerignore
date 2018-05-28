@@ -28,13 +28,13 @@
 
 # dockerignore
 
-`dockerignore` is a manager, filter and parser which is implemented in pure JavaScript according to the .dockerignore [spec](https://docs.docker.com/engine/reference/builder/#dockerignore-file) and is used in production in [now-cli](https://github.com/zeit/now-cli/)
+`dockerignore` is a manager, filter and parser which is implemented in pure JavaScript according to the .dockerignore [spec](https://docs.docker.com/engine/reference/builder/#dockerignore-file) and is used in production on [now-cli](https://github.com/zeit/now-cli/)
 
-The `.dockerignore` spec has a few subtle differences from `.gitignore`. IF you'd like a great `.gitignore` file parser, check out [ignore](https://github.com/kaelzhang/node-ignore). This package is a fork of `ignore` and follows the exact same API.
+The `.dockerignore` spec has a few subtle differences from `.gitignore`. If you'd like a great `.gitignore` file parser, check out [ignore](https://github.com/kaelzhang/node-ignore). This package is a fork of `ignore` and follows the exact same API.
 
 #### What's different from `ignore`?
 - There are many direct differences between the `.gitignore` and `.dockerignore` specifications
-  - `*` in `.gitignore` matches everything, wheras in `.dockerignore` it only matches things in the current directory (like glob). This difference is important when whitelisting after a `*` rule
+  - `*` in `.gitignore` matches everything, whereas in `.dockerignore` it only matches things in the current directory (like glob). This difference is important when whitelisting after a `*` rule
   - `abc` in `.gitignore` matches all `abc` files and directories, however deeply nested, however `.dockerignore` specifically matches on `./abc` but does not match nested files/directories like `./somedir/abc`
   - With `.gitignore`, when a parent directory is ignored, subdirectories cannot be re-added (using `!`) since `git` simply avoids walking through the subtree as an optimization, wheras with `.dockerignore` a subdirectory can be re-added even if a parent directory has been ignored
   - For a complete list of differences, check out the [.gitignore spec](https://git-scm.com/docs/gitignore) and the [.dockerignore spec](https://docs.docker.com/engine/reference/builder/#dockerignore-file)
@@ -98,7 +98,7 @@ ig.filter(['.abc\\a.js', '.abc\\d\\e.js'])
 
 ## dockerignore vs ignore
 
-Read our [blog post](https://zeit.co/blog) about the differences between `dockerignore` and `ignore` and why we built this package.
+Read our [blog post](https://zeit.co/blog/dockerignore) about the differences between `dockerignore` and `ignore` and why we built this package.
 
 ## Methods
 
@@ -160,6 +160,6 @@ Contributions are always welcome and we are fully [commited to Open Source](http
 5. Make a pull request (additional tests will run on CI to ensure that your test case agrees with an actual `docker build`)
 
 ## Authors
-  - Pranay Prakash ([@pranaygp](https://twitter.com/pranaygp)) – [ZEIT](https://zeit.co)
+  - Pranay Prakash ([@pranaygp](https://twitter.com/pranaygp)) – [▲ZEIT](https://zeit.co)
   
   Most of the initial work on this project was done by Kael Zhang ([@kaelzhang](https://github.com/kaelzhang)) and the [collaborators](https://github.com/kaelzhang/node-ignore#collaborators) on [node-ignore](https://github.com/kaelzhang/node-ignore)
