@@ -7,5 +7,5 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - run: docker build . --build-arg CI=$CI -t zeit/dockerignore:test
-      - run: docker run --rm -i -e CI=$CI -v /var/run/docker.sock:/var/run/docker.sock zeit/dockerignore:test
+      - run: docker build . -t zeit/dockerignore:test
+      - run: docker run --rm -i -e CI=$CI -e CIRCLECI=$CIRCLECI -v /var/run/docker.sock:/var/run/docker.sock zeit/dockerignore:test
