@@ -108,7 +108,7 @@ class IgnoreBase {
 
     if (pattern.length > 0) {
       pattern = cleanPath(pattern)
-			pattern = pattern.split(path.sept).join(SLASH);
+			pattern = pattern.split(path.sep).join(SLASH);
 			if (pattern.length > 1 && pattern[0] === SLASH) {
 				pattern = pattern.slice(1)
 			}
