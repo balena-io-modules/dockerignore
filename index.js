@@ -231,7 +231,7 @@ class IgnoreBase {
           // On windows map "\" to "\\", meaning an escaped backslash,
           // and then just continue because filepath.Match on
           // Windows doesn't allow escaping at all
-          regStr += escSL
+          regStr += escapedSlash
           continue
         }
         if (rule.pattern[i+1] !== undefined) {
