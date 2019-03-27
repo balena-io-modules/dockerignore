@@ -93,7 +93,7 @@ ig.filter(['.abc\\a.js', '.abc\\d\\e.js'])
 ## Features
 
 - Exactly according to the [dockerignore spec](https://docs.docker.com/engine/reference/builder/#dockerignore-file) 
-- All test cases are verified on Circle CI by doing an an actual `docker build` with the test case files and `.dockerignore` rules to ensure our tests match what happens with the real [docker](https://www.docker.com/) CLI
+- All test cases are verified on Circle CI by doing an actual `docker build` with the test case files and `.dockerignore` rules to ensure our tests match what happens with the real [docker](https://www.docker.com/) CLI
 - 0 external dependencies which keeps this package very small!
 
 ## dockerignore vs ignore
