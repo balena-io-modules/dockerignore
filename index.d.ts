@@ -38,4 +38,4 @@ export interface Ignore {
  */
 declare function ignore(): Ignore
 
-export = ignore
+export default ignore
