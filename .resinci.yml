@@ -1,0 +1,6 @@
+---
+npm:
+  platforms: []
+
+docker:
+  publish: false
