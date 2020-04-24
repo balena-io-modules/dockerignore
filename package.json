@@ -33,7 +33,7 @@
     "asterisks",
     "regular-expression"
   ],
-  "license": "MIT",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/balena-io-modules/dockerignore/issues"
   },
