@@ -1,5 +1,29 @@
 'use strict'
 
+/**
+ * @license
+ * Copyright 2020 Balena Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * ------------------------------------------------------------------------
+ *
+ * Copyright 2018 Zeit, Inc.
+ * Licensed under the MIT License. See file LICENSE.md for a full copy.
+ *
+ * ------------------------------------------------------------------------
+ */
+
 // For old node.js versions, we use es5
 const fs = require('fs')
 const ignore = require('../')
@@ -28,8 +52,6 @@ const cases = [
     ],
     {
       '': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -43,8 +65,6 @@ const cases = [
       '.ftpconfig': 1,
       '.git/config': 0,
       '.git/description': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -65,8 +85,6 @@ const cases = [
       'something.txt': 0,
       'somedir/something.txt': 0,
       'somedir/subdir/something.txt': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     },
     // true
   ],
@@ -80,8 +98,6 @@ const cases = [
       'test.txt': 0,
       'test.md': 1,
       'README.md': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -97,8 +113,6 @@ const cases = [
       'README.md': 0,
       'README-public.md': 0,
       'README-secret.md': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -114,8 +128,6 @@ const cases = [
       'README.md': 0,
       'README-public.md': 0,
       'README-secret.md': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -129,8 +141,6 @@ const cases = [
       'a/b/*/index.html': 0,
       'a/b/index.html': 1,
       'index.html': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -148,8 +158,6 @@ const cases = [
       'b/*/index.html': 0,
       'b/index.html': 1,
       'index.html': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -163,8 +171,6 @@ const cases = [
       'a/b/*/index.html': 0,
       'a/b/index.html': 1,
       'index.html': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -177,8 +183,6 @@ const cases = [
     {
       'node_modules/a/a.js': 0,
       'node_modules/package/a.js': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -191,8 +195,6 @@ const cases = [
       'foo/bar.js': 1,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -206,8 +208,6 @@ const cases = [
       'foo/bar.js': 1,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -222,8 +222,6 @@ const cases = [
       'foo/bar.js': 1,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -237,8 +235,6 @@ const cases = [
       'foo/bar.js': 0,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -252,8 +248,6 @@ const cases = [
       'foo/bar.js': 0,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -267,8 +261,6 @@ const cases = [
       'foo/bar.js': 0,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -281,7 +273,6 @@ const cases = [
     {
       '.a': 1,
       '.gitignore': 1,
-      'Dockerfile': 0,
       '.dockerignore': 1
     }
   ],
@@ -295,8 +286,6 @@ const cases = [
     {
       '.abc/a.js': 1,
       '.abc/d/e.js': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -329,8 +318,6 @@ const cases = [
       '.abc/a.js': 1,
       // but '.abc/d/e.js' won't be (unlike gitignore)
       '.abc/d/e.js': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -342,8 +329,6 @@ const cases = [
     {
       'a.txt': 0,
       'a/b/c.txt': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -351,8 +336,6 @@ const cases = [
     ['#abc'],
     {
       '#abc': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -362,8 +345,6 @@ const cases = [
     ],
     {
       '#abc': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   // TODO: Fix these tests case
@@ -435,8 +416,6 @@ const cases = [
     ],
     {
       'abc/a.js': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -448,8 +427,6 @@ const cases = [
     {
       'abc/a.js': 0,
       'abc/d/e.js': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -463,8 +440,6 @@ const cases = [
       'abc/a.js': 1,
       'bcd/abc/f.js': 1,
       'bcd/abc/a.js': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -475,8 +450,6 @@ const cases = [
     ],
     {
       'abc/def.txt': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -493,8 +466,6 @@ const cases = [
       'b/a.jsa': 0,
       'f/h': 1,
       'g/f/h': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -507,8 +478,6 @@ const cases = [
       'a/a.jsa': 0,
       'b/a/a.js': 0,
       'c/a/a.js': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -522,8 +491,6 @@ const cases = [
       'Documentation/dir.html/test.txt': 1,
       'Documentation/ppc/ppc.html': 0,
       'tools/perf/Documentation/perf.html': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -535,8 +502,6 @@ const cases = [
     {
       'cat-file.c': 1,
       'mozilla-sha1/sha1.c': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -549,8 +514,6 @@ const cases = [
       'foo/a': 1,
       'a/foo/a': 1,
       'a/b/c/foo/a': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -562,8 +525,6 @@ const cases = [
     {
       'foo/bar': 1,
       'abc/foo/bar': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -575,8 +536,6 @@ const cases = [
     {
       'foo/bar': 1,
       'abc/foo/bar/abc': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -590,8 +549,6 @@ const cases = [
       'abc/b': 1,
       'abc/d/e/f/g': 1,
       'bcd/abc/a': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -608,8 +565,6 @@ const cases = [
       'a/x/y/b': 1,
       'b/a.txt': 0,
       'b/a/b': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -621,8 +576,6 @@ const cases = [
       'abc/b/b.js': 0,
       '#e': 0,
       '#f': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -672,8 +625,6 @@ const cases = [
       '.a.sw': 0,
       '.a.sw?': 1,
       'thumbs.db': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -683,8 +634,6 @@ const cases = [
       'abd': 0,
       'abc/def.txt': 1,
       'abc/def/ghi': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -694,8 +643,6 @@ const cases = [
       'abc': 1,
       'abcdef': 1,
       'abcd/test.txt': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -704,8 +651,6 @@ const cases = [
     ], {
       'abc': 1,
       'abc/def.txt': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -718,8 +663,6 @@ const cases = [
       'b/a.b': 0,
       'b/.ba': 0,
       'b/c/a.b': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -730,8 +673,6 @@ const cases = [
       'c.c': 1,
       'c/c.c': 0,
       'c/d': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -745,8 +686,6 @@ const cases = [
       'd/.d': 1,
       'd/d.d': 0,
       'd/e': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -762,8 +701,6 @@ const cases = [
       'f/.e': 1,
       'e/e.e': 0,
       'e/f': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -772,8 +709,6 @@ const cases = [
     ], {
       'node_modules/gulp/node_modules/abc.md': 1,
       'node_modules/gulp/node_modules/abc.json': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -783,8 +718,6 @@ const cases = [
     ], {
       'node_modules/gulp/node_modules/abc.md': 1,
       'node_modules/gulp/node_modules/abc.json': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ]
 ]
@@ -804,7 +737,11 @@ let real_cases = cases_to_test_only.length
 real_cases.forEach(function(c) {
   const description = c[0]
   let patterns = c[1]
-  const paths_object = c[2]
+  const paths_object = {
+    '.dockerignore': 0, // default entry for 'vs. docker' test
+    'Dockerfile': 0,    // default entry for 'vs. docker' test
+    ...c[2], // may override '.dockerignore' and 'Dockerfile' keys above
+  }
   const skip_test_test = !CI || c[4]
 
   if (typeof patterns === 'string') {
