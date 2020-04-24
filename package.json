@@ -1,7 +1,7 @@
 {
-  "name": "@zeit/dockerignore",
+  "name": "@balena/dockerignore",
   "version": "0.0.5",
-  "description": "dockerignore is a manager and filter for .dockerignore rules and is a fork of ignore.",
+  "description": "dockerignore is a file filter library compatible with Docker and the node-ignore API",
   "main": "./ignore.js",
   "files": [
     "ignore.js",
@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:zeit/dockerignore.git"
+    "url": "git@github.com:balena-io-modules/dockerignore.git"
   },
   "keywords": [
     "ignore",
@@ -35,7 +35,7 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/zeit/dockerignore/issues"
+    "url": "https://github.com/balena-io-modules/dockerignore/issues"
   },
   "devDependencies": {
     "async-sema": "^2.1.0",
