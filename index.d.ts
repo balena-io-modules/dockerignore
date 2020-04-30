@@ -23,7 +23,7 @@ export interface Ignore {
    * Creates a filter function which could filter 
    * an array of paths with Array.prototype.filter.
    */
-  createFilter(): (path: string) => Ignore
+  createFilter(): (path: string) => boolean
 
   /**
    * Returns Boolean whether pathname should be ignored.
@@ -33,9 +33,13 @@ export interface Ignore {
   ignores(pathname: string): boolean
 }
 
+interface Options {
+  ignorecase?: boolean
+}
+
 /**
  * Creates new ignore manager.
  */
-declare function ignore(): Ignore
+declare function ignore(options?: Options): Ignore
 
 export default ignore

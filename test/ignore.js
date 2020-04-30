@@ -1,16 +1,37 @@
 'use strict'
 
-// For old node.js versions, we use es5
+/**
+ * @license
+ * Copyright 2020 Balena Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * ------------------------------------------------------------------------
+ *
+ * Copyright 2018 Zeit, Inc.
+ * Licensed under the MIT License. See file LICENSE.md for a full copy.
+ *
+ * ------------------------------------------------------------------------
+ */
+
 const fs = require('fs')
 const ignore = require('../')
 const expect = require('chai').expect
-const spawn = require('child_process').spawn
+const { spawn, spawnSync } = require('child_process')
 const tmp = require('tmp').dirSync
 const mkdirp = require('mkdirp').sync
 const path = require('path')
 const rm = require('rimraf').sync
-const removeEnding = require('pre-suf').removeEnding
-const getRawBody = require('raw-body')
 const it = require('ava')
 const Sema = require('async-sema')
 const cuid = require('cuid')
@@ -21,6 +42,7 @@ const SHOULD_TEST_WINDOWS = !process.env.IGNORE_TEST_WIN32
 const CI = !!process.env.CI;
 const PARALLEL_DOCKER_BUILDS = 6
 
+// Array of [description, [patterns], [paths/expect], optional 'only' flag]
 const cases = [
   [
     'special cases: invalid empty paths, just ignore',
@@ -28,8 +50,6 @@ const cases = [
     ],
     {
       '': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -43,8 +63,6 @@ const cases = [
       '.ftpconfig': 1,
       '.git/config': 0,
       '.git/description': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -65,10 +83,7 @@ const cases = [
       'something.txt': 0,
       'somedir/something.txt': 0,
       'somedir/subdir/something.txt': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     },
-    // true
   ],
   [
     '.dockerignore documentation sample 2',
@@ -80,8 +95,6 @@ const cases = [
       'test.txt': 0,
       'test.md': 1,
       'README.md': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -97,8 +110,6 @@ const cases = [
       'README.md': 0,
       'README-public.md': 0,
       'README-secret.md': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -114,12 +125,12 @@ const cases = [
       'README.md': 0,
       'README-public.md': 0,
       'README-secret.md': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
+  // [POSIX] because the asterisk is not allowed in a file or directory name on
+  // Windows: https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
   [
-    'wildcard: special case, escaped wildcard',
+    'wildcard: special case, escaped wildcard [POSIX]',
     [
       '*.html',
       'a/b/*.html',
@@ -129,18 +140,16 @@ const cases = [
       'a/b/*/index.html': 0,
       'a/b/index.html': 1,
       'index.html': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
-    'wildcard: treated as a shell glob suitable for consumption by fnmatch(3)',
+    'wildcard: treated as a shell glob suitable for consumption by fnmatch(3) [POSIX]',
     [
       '*.html',
       '*/*.html',
       '*/*/*.html',
       '*/*/*/*.html',
-      '!b/\*/index.html'
+      '!b/\\*/index.html',
     ],
     {
       'a/b/*/index.html': 1,
@@ -148,8 +157,6 @@ const cases = [
       'b/*/index.html': 0,
       'b/index.html': 1,
       'index.html': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -160,11 +167,9 @@ const cases = [
       '!a/b/*/index.html'
     ],
     {
-      'a/b/*/index.html': 0,
+      'a/b/c/index.html': 0,
       'a/b/index.html': 1,
       'index.html': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -177,8 +182,6 @@ const cases = [
     {
       'node_modules/a/a.js': 0,
       'node_modules/package/a.js': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -191,8 +194,6 @@ const cases = [
       'foo/bar.js': 1,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -206,8 +207,6 @@ const cases = [
       'foo/bar.js': 1,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -222,8 +221,6 @@ const cases = [
       'foo/bar.js': 1,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -237,8 +234,6 @@ const cases = [
       'foo/bar.js': 0,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -252,8 +247,6 @@ const cases = [
       'foo/bar.js': 0,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -267,12 +260,9 @@ const cases = [
       'foo/bar.js': 0,
       'foo/bar2.js': 1,
       'foo/bar/bar.js': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
-  // description  patterns  paths/expect  only
   [
     'ignore dot files',
     [
@@ -281,7 +271,6 @@ const cases = [
     {
       '.a': 1,
       '.gitignore': 1,
-      'Dockerfile': 0,
       '.dockerignore': 1
     }
   ],
@@ -295,8 +284,6 @@ const cases = [
     {
       '.abc/a.js': 1,
       '.abc/d/e.js': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -319,6 +306,24 @@ const cases = [
   ],
 
   [
+    'wildcard with whitelisting (zeit/dockerignore/issues/11)', [
+      '*',
+      '!src',
+      '!scripts',
+      '!config',
+      '!yarn.lock',
+      '!package.json',
+      '!.env*',
+    ], {
+      '.env.sample': 0,
+      '.env/.sample': 0,
+      '.env/other': 0,
+      'Dockerfile': 1,
+      '.dockerignore': 1,
+    }
+  ],
+
+  [
     'Negate wildcard inside ignored parent directory (gitignore differs here)',
     [
       '.abc/*',
@@ -329,8 +334,6 @@ const cases = [
       '.abc/a.js': 1,
       // but '.abc/d/e.js' won't be (unlike gitignore)
       '.abc/d/e.js': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -342,8 +345,6 @@ const cases = [
     {
       'a.txt': 0,
       'a/b/c.txt': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -351,8 +352,6 @@ const cases = [
     ['#abc'],
     {
       '#abc': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -362,71 +361,136 @@ const cases = [
     ],
     {
       '#abc': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
-  // TODO: Fix these tests case
-  // These test cases are currently being skipped because we need verify
-  // what dockerignore actually does and the "vs. docker" test won't work
-  // because listing files using find . on the docker image and getting
-  // the list of files trims whitespace.
-  // After manually verifying these test cases, we'll bring them back
-  // [
-  //   'Trailing spaces are ignored unless they are quoted with backslash ("\\")',
-  //   [
-  //     'abc\\  ', // only one space left -> (abc )
-  //     'bcd  ',   // no space left -> (bcd)
-  //     'cde \\ '  // two spaces -> (cde  )
-  //   ],
-  //   {
-  //     // nothing to do with backslashes
-  //     'abc\\  ': 1,
-  //     'abc  ': 0,
-  //     'abc ': 0,
-  //     'abc   ': 0,
-  //     'bcd': 1,
-  //     'bcd ': 1,
-  //     'bcd  ': 1,
-  //     'cde  ': 0,
-  //     'cde ': 0,
-  //     'cde   ': 0
-  //   },
-  //   true,
-  //   true
-  // ],
-  // [
-  //   'spaces are accepted in patterns. "\\ " doesn\'t mean anything special',
-  //   [
-  //     'abc d',
-  //     'abc\ e',
-  //     'abc\\ f',
-  //     'abc/a b c'
-  //   ],
-  //   {
-  //     'abc d': 1,
-  //     'abc\ e': 1,
-  //     'abc/a b c': 1,
-  //     'abc\\ f': 0,
-  //     'abc': 0,
-  //     'abc/abc d': 0,
-  //     'abc/abc e': 0,
-  //     'abc/abc f': 0
-  //   }
-  // ],
-  // [
-  //   'Put a backslash ("\\") in front of the first "!" for patterns that begin with a literal "!"',
-  //   [
-  //     '\\!abc',
-  //     '\\!important!.txt'
-  //   ],
-  //   {
-  //     '!abc': 1,
-  //     'abc': 0,
-  //     'b/!important!.txt': 0,
-  //     '!important!.txt': 1
-  //   }
-  // ],
+  [
+    'Trailing spaces are ignored',
+    [
+      'a ',
+      'b /',
+    ],
+    {
+      // docker trims spaces in paths, so leading/trailing spaces never match
+      'a': 1,
+      'b': 1,
+      'a ': 0,
+      'b ': 0,
+    }
+  ],
+  [
+    'Trailing spaces with backslashes never match [POSIX]',
+    [
+      'a\\ ',
+      'b\\ /',
+    ],
+    {
+      'a\\ ': 0, // this actually includes a backslash in the file name
+      'a\\': 0,
+      'a ': 0,
+      'a': 0,
+      'b\\ ': 0,
+      'b ': 0,
+      'b': 0,
+    }
+  ],
+  [
+    'Leading spaces are ignored',
+    [
+      ' a',
+      '/ b',
+    ],
+    {
+      'a': 1,
+      'b': 1,
+      ' a': 0,
+      ' b': 0,
+    }
+  ],
+  [
+    'Leading spaces with backslashes are not ignored [POSIX]',
+    [
+      '\\ a',
+      '/\\ b',
+    ],
+    {
+      'a': 0,
+      'b': 0,
+      ' a': 1,
+      ' b': 1,
+    }
+  ],
+  [
+    'spaces are accepted within patterns',
+    [
+      'abc d',
+      'abc/a b c'
+    ],
+    {
+      'abc d': 1,
+      'abc/a b c': 1,
+      'abc/a b d': 0,
+      'abc/abc d': 0,
+    }
+  ],
+  [
+    'spaces are accepted within patterns. "\\ " doesn\'t mean anything special [POSIX]',
+    [
+      'abc\\ d',
+      'abc/a\\ b\\ c'
+    ],
+    {
+      'abc d': 1,
+      'abc\\ d': 0,
+      'abc/a b c': 1,
+      'abc/a\\ b\\ c': 0,
+      'abc/a b d': 0,
+      'abc/abc d': 0,
+    }
+  ],
+  [
+    // [POSIX] because backslashes are treated as path separators on Windows and
+    // cannot be used to escape the `!` character.
+    'Put a backslash ("\\") in front of the first "!" for patterns that begin with a literal "!" [POSIX]',
+    [
+      '\\!abc',
+      '\\!important!.txt'
+    ],
+    {
+      '!abc': 1,
+      'abc': 0,
+      'b/!important!.txt': 0,
+      '!important!.txt': 1,
+    }
+  ],
+  [
+    'Negation is also possible with "/!" or "!/", but not "/!/" ("docker build" compatibility)',
+    [
+      'a', '/!a',
+      'b', '!/b',
+      'c', '/!/c',
+      ...(IS_WINDOWS ?
+        [
+          'd', '\\!d',
+          'e', '!\\e',
+          'f', '\\!\\f',
+        ]
+        : []
+      ),
+    ],
+    {
+      'a': 0, '!a': 0,
+      'b': 0, '!b': 0,
+      'c': 1, '!c': 0, '!/c': 0,
+      ...(IS_WINDOWS ?
+        {
+          'd': 0, '!d': 0,
+          'e': 0, '!e': 0,
+          'f': 1, '!f': 0, '!/f': 0,
+        }
+        : {}
+      ),
+    }
+  ],
   [
     'An optional prefix "!" which negates the pattern; any matching file excluded by a previous pattern will become included again',
     [
@@ -435,8 +499,6 @@ const cases = [
     ],
     {
       'abc/a.js': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -448,8 +510,6 @@ const cases = [
     {
       'abc/a.js': 0,
       'abc/d/e.js': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -463,8 +523,6 @@ const cases = [
       'abc/a.js': 1,
       'bcd/abc/f.js': 1,
       'bcd/abc/a.js': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -475,8 +533,6 @@ const cases = [
     ],
     {
       'abc/def.txt': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -493,8 +549,6 @@ const cases = [
       'b/a.jsa': 0,
       'f/h': 1,
       'g/f/h': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -507,8 +561,6 @@ const cases = [
       'a/a.jsa': 0,
       'b/a/a.js': 0,
       'c/a/a.js': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -522,8 +574,6 @@ const cases = [
       'Documentation/dir.html/test.txt': 1,
       'Documentation/ppc/ppc.html': 0,
       'tools/perf/Documentation/perf.html': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -535,8 +585,52 @@ const cases = [
     {
       'cat-file.c': 1,
       'mozilla-sha1/sha1.c': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
+    }
+  ],
+
+  [
+    'Leading and trailing slashes are removed from patterns',
+    [
+      '/a',
+      'b/',
+      '/c/',
+    ],
+    {
+      'a': 1,
+      'b': 1,
+      'c': 1,
+      'd': 0,
+    }
+  ],
+
+  // The "vs. docker" test would fail for the '/b' path below (hence the
+  // [SKIP-DOCKER] annotation), but only because "docker build" converts
+  // paths from absolute to relative BEFORE pattern matching:
+  // https://github.com/moby/moby/blob/v19.03.8/pkg/archive/archive.go#L806
+  // https://github.com/moby/moby/blob/v19.03.8/pkg/archive/archive.go#L825
+  [
+    'Absolute paths don\'t match non-wildcard patterns [SKIP-DOCKER]',
+    [
+      'a',
+      '/a',
+      'b',
+      '/b',
+    ],
+    {
+      'a': 1,
+      '/b': 0, // "vs. docker" would fail this one (see comment above)
+    }
+  ],
+
+  [
+    'Absolute paths like "/a" don\'t usually match any patterns, except for the wildcard',
+    [
+      '*',
+    ],
+    {
+      '/a': 1,
+      'Dockerfile': 1,
+      '.dockerignore': 1,
     }
   ],
 
@@ -549,8 +643,6 @@ const cases = [
       'foo/a': 1,
       'a/foo/a': 1,
       'a/b/c/foo/a': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -562,8 +654,6 @@ const cases = [
     {
       'foo/bar': 1,
       'abc/foo/bar': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -575,8 +665,6 @@ const cases = [
     {
       'foo/bar': 1,
       'abc/foo/bar/abc': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -590,8 +678,6 @@ const cases = [
       'abc/b': 1,
       'abc/d/e/f/g': 1,
       'bcd/abc/a': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -608,8 +694,66 @@ const cases = [
       'a/x/y/b': 1,
       'b/a.txt': 0,
       'b/a/b': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
+    }
+  ],
+
+  [
+    'Undo identical ignore rules',
+    [
+      'ab',
+      '!ab',
+      'cd*',
+      '!cd*',
+      'dir/*',
+      '!dir/*',
+      '*.htm',
+      '!*.htm',
+    ],
+    {
+      'ab': 0,
+      'cd': 0,
+      'cde': 0,
+      'dir/foo': 0,
+      'index.htm': 0,
+    }
+  ],
+  [
+    'Undo "*" rule with "**" rule',
+    [
+      '*.htm',
+      '!**/*.htm',
+    ],
+    {
+      'welcome.htm': 0,
+      'dir/index.htm': 0,
+    }
+  ],
+  [
+    'Undo identical rule with "**" pattern',
+    [
+      '.foo',
+      '!**/.foo',
+      '.bar',
+      '!**/.bar'
+    ],
+    {
+      '.foo/.foo': 0,
+      '.bar': 0,
+    }
+  ],
+  // TODO: review the implementation for this test case, because it fails the
+  // "vs. docker" comparison (disabled with '[SKIP-DOCKER]' in the title).
+  // This is a corner case where docker's behavior seems to mismatch their own
+  // spec. It is still useful to have this test enabled here in order to verify
+  // consistent cross-platform behavior (Windows, Linux, macOS).
+  [
+    'Undo identical rule with "**" pattern (zeit/dockerignore/issues/15) [SKIP-DOCKER]',
+    [
+      '.foo',
+      '!**/.foo',
+    ],
+    {
+      '.foo/bar': 0, // fails 'vs. docker' ("docker build" actually ignores '.foo/bar')
     }
   ],
 
@@ -621,8 +765,6 @@ const cases = [
       'abc/b/b.js': 0,
       '#e': 0,
       '#f': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
 
@@ -664,7 +806,9 @@ const cases = [
   ],
 
   [
-    'question mark should not break all things',
+    // [POSIX] because the question mark is not allowed in a file or directory name
+    // on Windows: https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+    'question mark should not break all things [POSIX]',
     'test/fixtures/.ignore-issue-2', {
       '.project': 1,
       // remain
@@ -672,8 +816,6 @@ const cases = [
       '.a.sw': 0,
       '.a.sw?': 1,
       'thumbs.db': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -683,8 +825,6 @@ const cases = [
       'abd': 0,
       'abc/def.txt': 1,
       'abc/def/ghi': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -693,19 +833,8 @@ const cases = [
     ], {
       'abc': 1,
       'abcdef': 1,
-      'abcd/test.txt': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
-    }
-  ],
-  [
-    'dir ended with "*"', [
-      'abc*',
-    ], {
-      'abc': 1,
       'abc/def.txt': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
+      'abcd/test.txt': 1,
     }
   ],
   [
@@ -718,8 +847,6 @@ const cases = [
       'b/a.b': 0,
       'b/.ba': 0,
       'b/c/a.b': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -730,8 +857,6 @@ const cases = [
       'c.c': 1,
       'c/c.c': 0,
       'c/d': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -745,8 +870,6 @@ const cases = [
       'd/.d': 1,
       'd/d.d': 0,
       'd/e': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -762,8 +885,32 @@ const cases = [
       'f/.e': 1,
       'e/e.e': 0,
       'e/f': 0,
-      'Dockerfile': 0,
-      '.dockerignore': 0
+    }
+  ],
+  [
+    'case insensitive matching (the default behavior) [CASE-INSENSITIVE]',
+    [
+      'ab',
+      'cD/eF',
+      'GH',
+    ], {
+      'AB': 1,
+      'cd/ef': 1,
+      'gh': 1,
+    }
+  ],
+  [
+    'case sensitive matching [CASE-SENSITIVE]',
+    [
+      'ab',
+      'cD/eF',
+      'cD/AB',
+      'GH',
+    ], {
+      'AB': 0,
+      'cD/ef': 0,
+      'cD/AB': 1,
+      'gh': 0,
     }
   ],
   [
@@ -772,8 +919,6 @@ const cases = [
     ], {
       'node_modules/gulp/node_modules/abc.md': 1,
       'node_modules/gulp/node_modules/abc.json': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ],
   [
@@ -783,8 +928,6 @@ const cases = [
     ], {
       'node_modules/gulp/node_modules/abc.md': 1,
       'node_modules/gulp/node_modules/abc.json': 1,
-      'Dockerfile': 0,
-      '.dockerignore': 0
     }
   ]
 ]
@@ -804,8 +947,26 @@ let real_cases = cases_to_test_only.length
 real_cases.forEach(function(c) {
   const description = c[0]
   let patterns = c[1]
-  const paths_object = c[2]
-  const skip_test_test = !CI || c[4]
+  const paths_object = {
+    '.dockerignore': 0, // default entry for 'vs. docker' test
+    'Dockerfile': 0,    // default entry for 'vs. docker' test
+    ...c[2], // may override '.dockerignore' and 'Dockerfile' keys above
+  }
+
+  // [POSIX] tests may use the backslash as a pattern escape character, and
+  // may use certain reserved characters in file names. On Windows, both the
+  // backslash and the forward slash are treated as path separators, and the
+  // characters [<>:/\\|?*] cannot be used in file names.
+  if (IS_WINDOWS && description.includes('[POSIX]')) {
+    return
+  }
+
+  // There are 3 types of tests with regard to case sensitiveness:
+  // * [CASE-SENSITIVE] tests specifically require { ignorecase: false }
+  // * [CASE-INSENSITIVE] tests specifically require { ignorecase: true }
+  // * All other tests should pass regardless of the ignorecase value
+  const isCaseSensitiveTest = description.includes('[CASE-SENSITIVE]')
+  const isCaseInsensitiveTest = description.includes('[CASE-INSENSITIVE]')
 
   if (typeof patterns === 'string') {
     patterns = readPatterns(patterns)
@@ -822,13 +983,11 @@ real_cases.forEach(function(c) {
   .sort()
 
   function expect_result(t, result, mapper) {
-    if (mapper) {
-      expected = expected.map(mapper)
-    }
-
-    t.deepEqual(result.sort(), expected.sort())
+    const mapped = mapper ? expected.map(mapper) : expected
+    t.deepEqual(result.sort(), mapped.sort())
   }
 
+  !isCaseSensitiveTest &&
   it('.filter():'.padEnd(26) + description, function(t) {
     t.plan(1)
     let ig = ignore()
@@ -839,6 +998,20 @@ real_cases.forEach(function(c) {
     expect_result(t, result)
   })
 
+  !isCaseInsensitiveTest &&
+  it(`case sensitive .filter():`.padEnd(26) + description, function(t) {
+    t.plan(1)
+    let ig = ignore({
+      ignorecase: false, // the default value is true
+    })
+    let result = ig
+      .addPattern(patterns)
+      .filter(paths)
+
+    expect_result(t, result)
+  })
+
+  !isCaseSensitiveTest &&
   it('.createFilter():'.padEnd(26) + description, function(t) {
     t.plan(1)
     let result = paths.filter(
@@ -852,6 +1025,7 @@ real_cases.forEach(function(c) {
     expect_result(t, result)
   })
 
+  !isCaseSensitiveTest &&
   it('.ignores(path):'.padEnd(26) + description, function (t) {
     t.plan(Object.keys(paths_object).length)
     let ig = ignore().addPattern(patterns)
@@ -861,21 +1035,19 @@ real_cases.forEach(function(c) {
     })
   })
 
-
-  // TODO: Is this still applicable with dockerignore
-  // Perhaps we should update the test and remov this flag
-  // In some platform, the behavior of trailing spaces is weird
-  // is not implemented as documented, so skip test
-  !skip_test_test
-  // Tired to handle test cases for test cases for windows
-  && !IS_WINDOWS
-  && it('vs. docker:'.padEnd(26) + description, async function (t) {
+  // Run the test cases against real `docker build` and `docker run` output
+  CI &&
+  !process.env.SKIP_DOCKER && // CI build matrix support
+  !isCaseInsensitiveTest && // Docker/.dockerignore is case sensitive
+  !description.includes('[SKIP-DOCKER]') &&
+  it('vs. docker:'.padEnd(26) + description, async function (t) {
     t.plan(1)
     let result = (await getNativeDockerIgnoreResults(patterns, paths)).sort()
 
     expect_result(t, result)
   })
 
+  !isCaseSensitiveTest &&
   SHOULD_TEST_WINDOWS && it('win32: .filter():'.padEnd(26) + description, function(t) {
     t.plan(1)
     let win_paths = paths.map(make_win32)
@@ -983,16 +1155,14 @@ async function getNativeDockerIgnoreResults (rules, paths) {
     WORKDIR /build-context
     CMD find . -type f
   `
-
+  // `normalize` replaces forward slashes with backslashes on Windows
+  paths = paths.filter(p => p).map(p => path.normalize(p))
   paths.forEach(function (path, i) {
     if (path === '.dockerignore') {
       return
     }
 
-    // We do not know if a path is NOT a file,
-    // if we:
-    // `touch a`
-    // and then `touch a/b`, then boooom!
+    // skip directories
     if (containsInOthers(path, i, paths)) {
       return
     }
@@ -1003,55 +1173,78 @@ async function getNativeDockerIgnoreResults (rules, paths) {
   touch(dir, '.dockerignore', dockerignore)
   touch(dir, DockerfileName, Dockerfile)
 
-  await getRawBody(spawn('docker', ['build', '-f', DockerfileName, '-t', imageTag, '.'], {
-    cwd: dir
-  }).stdout)
-
-  let runProc = spawn('docker', ['run', '--rm', imageTag], {
+  // The reason for runSync instead of runAsync is that `docker build` must
+  // finish before executing `docker run`. Note that getNativeDockerIgnoreResults
+  // is async and ava runs tests in parallel, so runSync does not prevent
+  // running multiple docker builds in parallel (and dockerBuildSema controls
+  // approximately how many to run in parallel).
+  runSync('docker', ['build', '-f', DockerfileName, '-t', imageTag, '.'], {
     cwd: dir
   })
-  
-  const out = (await getRawBody(runProc.stdout)).toString('utf8')
+
+  // runSync because `docker run` must finish before executing `docker rmi`
+  const out = runSync('docker', ['run', '--rm', imageTag], {
+    cwd: dir
+  })
 
   dockerBuildSema.release()
 
-  await getRawBody(spawn('docker', ['rmi', imageTag], {
+  // OK to be async because nothing depends on completion of `docker rmi`
+  runAsync('docker', ['rmi', imageTag], {
     cwd: dir
-  }).stdout)
+  })
 
   // Remove empty lines and the './' precceding each file
   return out.split('\n').filter(Boolean).map(x => x.slice(2));
 }
 
+// Error-handling wrapper around child_process.spawnSync()
+function runSync(command, args, options) {
+  const proc = spawnSync(command, args, { ...options, encoding: 'utf8' })
+  if (proc.error) {
+    console.error(proc.error)
+    throw proc.error
+  }
+  if (proc.stderr) {
+    console.error(proc.stderr)
+    throw new Error(proc.stderr)
+  }
+  return proc.stdout
+}
+
+// Error-handling wrapper around child_process.spawn()
+function runAsync(command, args, options) {
+  spawn(command, args, { ...options, encoding: 'utf8' })
+  .on('error', error => {
+    console.error(`Error executing: ${[command, ...args].join(' ')}\n${error}`)
+  })
+}
 
 function touch (root, file, content) {
-  // file = specialCharInFileOrDir(file)
-
-  let dirs = file.split('/')
-  let basename = dirs.pop()
-
-  let dir = dirs.join('/')
+  const { dir, base: basename } = path.parse(file)
 
   if (dir) {
     mkdirp(path.join(root, dir))
   }
 
-  // abc/ -> should not create file, but only dir
   if (basename) {
     fs.writeFileSync(path.join(root, file), content || '')
   }
 }
 
-
 function containsInOthers (path, index, paths) {
-  path = removeEnding(path, '/')
-
   return paths.some(function (p, i) {
     if (index === i) {
       return
     }
-
-    return p === path
-    || p.indexOf(path) === 0 && p[path.length] === '/'
+    return isSubdir(p, path)
   })
+}
+
+// Check whether path2 is a subdirectory of path1
+// Return true when path1 equals path2
+// Ref: https://stackoverflow.com/a/45242825
+function isSubdir(path1, path2) {
+  const rel = path.relative(path.normalize(path1), path.normalize(path2))
+  return !(rel === '..' || rel.startsWith('..' + path.sep))
 }
