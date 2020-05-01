@@ -33,7 +33,7 @@ const mkdirp = require('mkdirp').sync
 const path = require('path')
 const rm = require('rimraf').sync
 const it = require('ava')
-const Sema = require('async-sema')
+const { Sema } = require('async-sema')
 const cuid = require('cuid')
 
 const IS_WINDOWS = process.platform === 'win32'
