@@ -28,8 +28,8 @@ environment:
 install:
   - cmd: powershell Install-Product node $env:nodejs_version
   - sh: nvm install $nodejs_version
-  - yarn --version
-  - yarn install
+  - npm --version
+  - npm install
 
 test_script:
   - node --version

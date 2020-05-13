@@ -45,13 +45,12 @@ and [fileutils.go](https://github.com/moby/moby/blob/v19.03.8/pkg/fileutils/file
 ### Compatibility
 
 `dockerignore` works with Node.js version 8 and above, on Linux, macOS and Windows.
-The code is compiled with [Babel](https://babeljs.io/docs/en/), currently targeting
-[ES2015](https://en.wikipedia.org/wiki/ECMAScript).
+The code is compiled with [Babel](https://babeljs.io/docs/en/).
 
 ## Install
 
 ```bash
-npm install --save @balena/dockerignore  # or yarn add @balena/dockerignore
+npm install --save @balena/dockerignore
 ```
 
 ## Usage
@@ -243,7 +242,7 @@ Returns `function(path)` the filter function.
 Contributions are always welcome!
 
 1. Fork this repository to your own GitHub account and then clone it to your local device.
-2. Install the dependencies: `yarn` or `npm install`
+2. Install the dependencies: `npm install`
 3. Add a test case (if applicable) and ensure it currently fails
 4. Add code to pass the test
 5. Make a pull request (additional tests will run on CI to ensure that your test case agrees with an actual `docker build`)
